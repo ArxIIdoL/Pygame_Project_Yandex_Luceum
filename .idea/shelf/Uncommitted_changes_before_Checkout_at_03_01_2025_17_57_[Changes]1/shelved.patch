@@ -1,0 +1,88 @@
+Index: .idea/PyGame.iml
+===================================================================
+diff --git a/.idea/PyGame.iml b/.idea/PyGame.iml
+new file mode 100644
+--- /dev/null	(date 1735915357766)
++++ b/.idea/PyGame.iml	(date 1735915357766)
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="PYTHON_MODULE" version="4">
++  <component name="NewModuleRootManager">
++    <content url="file://$MODULE_DIR$">
++      <excludeFolder url="file://$MODULE_DIR$/.venv" />
++    </content>
++    <orderEntry type="inheritedJdk" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
++</module>
+\ No newline at end of file
+Index: main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import pygame\r\n\r\nif __name__ == '__main__':\r\n    pygame.init()\r\n    pygame.display.set_caption('')\r\n    size = width, height = 600, 900\r\n    screen = pygame.display.set_mode(size)\r\n    fps = 50  # количество кадров в секунду\r\n    clock = pygame.time.Clock()\r\n    running = True\r\n    while running:  # главный игровой цикл\r\n        for event in pygame.event.get():\r\n            if event.type == pygame.QUIT:\r\n                running = False\r\n        rect = pygame.Rect(250, 800 - 50, 50, 50)\r\n        pygame.draw.rect(screen, (255, 0, 0), rect)\r\n        pygame.display.flip()\r\n        clock.tick(fps)\r\n    pygame.quit()
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.py b/main.py
+--- a/main.py	(revision 7f84c68a131d16d279c5c28c788e57808c40a605)
++++ b/main.py	(date 1735915655715)
+@@ -1,19 +1,47 @@
+ import pygame
+ 
+-if __name__ == '__main__':
++class Ship:
++    def __init__(self, x, y):
++        self.x = x
++        self.y = y
++        self.width = 50
++        self.height = 90
++
++    def move(self, dx, dy):
++        self.x += dx
++        self.y += dy
++        self.x = max(0, min(self.x, 600 - self.width))
++        self.y = max(0, min(self.y, 900 - self.height))
++
++def main():
+     pygame.init()
+-    pygame.display.set_caption('')
+-    size = width, height = 600, 900
+-    screen = pygame.display.set_mode(size)
+-    fps = 50  # количество кадров в секунду
++    screen = pygame.display.set_mode((600, 900))
+     clock = pygame.time.Clock()
++    ship = Ship(300, 800)
++
+     running = True
+-    while running:  # главный игровой цикл
++    while running:
+         for event in pygame.event.get():
+             if event.type == pygame.QUIT:
+                 running = False
+-        rect = pygame.Rect(250, 800 - 50, 50, 50)
+-        pygame.draw.rect(screen, (255, 0, 0), rect)
++
++        keys = pygame.key.get_pressed()
++        if keys[pygame.K_a]:
++            ship.move(-5, 0)
++        if keys[pygame.K_d]:
++            ship.move(5, 0)
++        if keys[pygame.K_w]:
++            ship.move(0, -5)
++        if keys[pygame.K_s]:
++            ship.move(0, 5)
++
++        screen.fill((0, 0, 0))
++        pygame.draw.rect(screen, (255, 255, 255), (ship.x, ship.y, ship.width, ship.height))
++
+         pygame.display.flip()
+-        clock.tick(fps)
+-    pygame.quit()
+\ No newline at end of file
++        clock.tick(60)
++
++    pygame.quit()
++
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
