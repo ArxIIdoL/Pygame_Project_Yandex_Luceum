@@ -26,7 +26,7 @@ def main():
                 running = False
 
         keys = pygame.key.get_pressed()
-        speed = 2  # Уменьшенная скорость
+        speed = 1.2  # Уменьшенная скорость
         if keys[pygame.K_a]:
             ship.move(-speed, 0)
         if keys[pygame.K_d]:
