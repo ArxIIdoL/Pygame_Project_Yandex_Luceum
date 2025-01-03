@@ -26,20 +26,21 @@ def main():
                 running = False
 
         keys = pygame.key.get_pressed()
+        speed = 2  # Уменьшенная скорость
         if keys[pygame.K_a]:
-            ship.move(-5, 0)
+            ship.move(-speed, 0)
         if keys[pygame.K_d]:
-            ship.move(5, 0)
+            ship.move(speed, 0)
         if keys[pygame.K_w]:
-            ship.move(0, -5)
+            ship.move(0, -speed)
         if keys[pygame.K_s]:
-            ship.move(0, 5)
+            ship.move(0, speed)
 
         screen.fill((0, 0, 0))
         pygame.draw.rect(screen, (255, 255, 255), (ship.x, ship.y, ship.width, ship.height))
 
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(240)
 
     pygame.quit()
 
