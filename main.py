@@ -1,6 +1,7 @@
-import pygame
-import sys
 import os
+import sys
+
+import pygame
 
 
 def load_image(name, colorkey=None):
@@ -43,23 +44,24 @@ def terminate():
 
 def start_screen(screen_size):
     global FPS
-    size = 600, 400
-    screen = pygame.display.set_mode(size)
+    screen = pygame.display.set_mode(screen_size)
     # Музыка
     pygame.mixer.init()
     pygame.mixer.music.load(load_music('start music background.mp3'))
+    pygame.mixer.music.set_volume(0.15)
     pygame.mixer.music.play(loops=-1, fade_ms=6 * 1000)
-    pygame.display.set_icon(load_image('icon.jpg'))
-    pygame.display.set_caption('AstroBlast')
-    fon = pygame.transform.scale(load_image('screen_saver/background.jpg'), screen_size)
+    pygame.display.set_icon(load_image('icon.jpg'))  # Загрузка исконки
+    pygame.display.set_caption('AstroBlast')  # Загрузка названия
+    fon = pygame.transform.scale(load_image('screen_saver/background.jpg'), screen_size)  # Загрузка шрифта
     screen.blit(fon, (0, 0))
     # Название игры
     font = load_font(20)
+    # Название игры на экране
     string_rendered = font.render("AstroBlast", 1, pygame.Color('White'))
     intro_rect = string_rendered.get_rect()
     intro_rect.top, intro_rect.x = 80, 200
     screen.blit(string_rendered, intro_rect)
-    # Уровни
+    # текст с выбором уровня на экране
     font = load_font(16)
     for x, text in zip((100, 350), ("Уровень 1", "Уровень 2")):
         string_rendered = font.render(text, 1, pygame.Color('White'))
@@ -90,7 +92,5 @@ def level_two():
 if __name__ == '__main__':
     pygame.init()
     pygame.display.set_caption('')
-    size = width, height = 600, 900
-    screen = pygame.display.set_mode(size)
-    FPS, clock, running = 50, pygame.time.Clock(), True
+    FPS, clock = 50, pygame.time.Clock()
     start_screen((600, 400))
