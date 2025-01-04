@@ -1,96 +1,130 @@
 import pygame
-import sys
-import os
+import random
 
 
-def load_image(name, colorkey=None):
-    fullname = os.path.join('data/image', name)
-    if not os.path.isfile(fullname):
-        print(f"Файл с изображением '{fullname}' не найден")
-        sys.exit()
-    image = pygame.image.load(fullname)
-    if colorkey is not None:
-        image = image.convert()
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
-    return image
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, x, y):
+        super().__init__()
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+    def cut_sheet(self, sheet, columns, rows):
+        frame_width = sheet.get_width() // columns
+        frame_height = sheet.get_height() // rows
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (frame_width * i, frame_height * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, (frame_width, frame_height))))
+
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
 
 
-def load_music(type):
-    fullname = os.path.join('data/music', type)
-    if not os.path.isfile(fullname):
-        print(f"Файл с музыкой '{fullname}' не найден")
-        sys.exit()
-    return fullname
+class Ship(AnimatedSprite):
+    def __init__(self, x, y):
+        sheet = pygame.image.load("data/image/ship_sprite/ship.png").convert_alpha()
+        super().__init__(sheet, 4, 1, x, y)
+
+        self.bullets = []
+        self.last_shot_time = 0
+        self.shoot_delay = 175
+
+        # Параметры для эффекта вылета
+        self.is_flying_in = True
+        self.fly_in_speed = 2  # Скорость вылета
+        self.target_y = 700  # Конечная позиция корабля (где он должен остановиться)
+
+        # Устанавливаем начальную позицию
+        self.rect.y = 900  # Начинаем из нижней части экрана
+
+    def move(self, dx, dy):
+        self.rect.x += dx
+        self.rect.y += dy
+        self.rect.x = max(0, min(self.rect.x, 600 - self.rect.width))
+        self.rect.y = max(0, min(self.rect.y, 900 - self.rect.height))
+
+    def shoot(self, current_time):
+        if current_time - self.last_shot_time > self.shoot_delay:
+            bullet = Bullet(self.rect.centerx, self.rect.top)
+            self.bullets.append(bullet)
+            self.last_shot_time = current_time
+
+    def update(self):
+        if self.is_flying_in:
+            # Поднимаем корабль из-за нижней границы экрана
+            if self.rect.y > self.target_y:
+                self.rect.y -= self.fly_in_speed
+            else:
+                self.is_flying_in = False  # Остановить эффект вылета
+        super().update()
 
 
-def load_font(size):
-    fullname = os.path.join('data', 'font/PressStart2P-Regular.ttf')
-    if not os.path.isfile(fullname):
-        print(f"Файл с шрифтом '{fullname}' не найден")
-        sys.exit()
-    font = pygame.font.Font(fullname, size)
-    return font
+class Bullet(AnimatedSprite):
+    def __init__(self, x, y):
+        sheet = pygame.image.load("data/image/bullet_sprite/All_Fire_Bullet_Pixel_16x16_00.png").convert_alpha()
+        super().__init__(sheet, 4, 1, x, y)
+        self.bullet_speed = 1.7
+
+        # Поворачиваем каждый кадр на 90 градусов влево
+        self.frames = [pygame.transform.rotate(frame, 90) for frame in self.frames]
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def move(self):
+        self.rect.y -= self.bullet_speed
 
 
-def terminate():
-    pygame.quit()
-    sys.exit()
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((600, 900))
+    clock = pygame.time.Clock()
 
+    # Вычисляем начальную позицию по центру экрана
+    ship_x = (600 - 64) // 2  # 64 - ширина корабля (предположим, что корабль имеет ширину 64 пикселя)
+    ship = Ship(ship_x, 900)  # Начинаем из нижней части экрана
 
-def start_screen(screen_size):
-    global FPS
-    size = 600, 400
-    screen = pygame.display.set_mode(size)
-    # Музыка
-    pygame.mixer.init()
-    pygame.mixer.music.load(load_music('start music background.mp3'))
-    pygame.mixer.music.play(loops=-1, fade_ms=6 * 1000)
-    pygame.display.set_icon(load_image('icon.jpg'))
-    pygame.display.set_caption('AstroBlast')
-    fon = pygame.transform.scale(load_image('screen_saver/background.jpg'), screen_size)
-    screen.blit(fon, (0, 0))
-    # Название игры
-    font = load_font(20)
-    string_rendered = font.render("AstroBlast", 1, pygame.Color('White'))
-    intro_rect = string_rendered.get_rect()
-    intro_rect.top, intro_rect.x = 80, 200
-    screen.blit(string_rendered, intro_rect)
-    # Уровни
-    font = load_font(16)
-    for x, text in zip((100, 350), ("Уровень 1", "Уровень 2")):
-        string_rendered = font.render(text, 1, pygame.Color('White'))
-        intro_rect = string_rendered.get_rect()
-        intro_rect.top, intro_rect.x = 200, x
-        screen.blit(string_rendered, intro_rect)
-    while True:
+    running = True
+    while running:
+        current_time = pygame.time.get_ticks()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                terminate()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if 94 <= event.pos[0] <= 246 and 194 <= event.pos[1] <= 217:  # Окрытие уровня 1
-                    level_one()
-                elif 342 <= event.pos[0] <= 500 and 194 <= event.pos[1] <= 217:  # Открытие уровня 2
-                    level_two()
+                running = False
+
+        keys = pygame.key.get_pressed()
+        ship_speed = 1.2
+        if keys[pygame.K_a]:
+            ship.move(-ship_speed, 0)
+        if keys[pygame.K_d]:
+            ship.move(ship_speed, 0)
+        if keys[pygame.K_w]:
+            ship.move(0, -ship_speed)
+        if keys[pygame.K_s]:
+            ship.move(0, ship_speed)
+        if keys[pygame.K_SPACE]:
+            ship.shoot(current_time)
+
+        for bullet in ship.bullets:
+            bullet.move()
+            if bullet.rect.y < 0:  # Проверяем, вышла ли пуля за верхнюю границу
+                ship.bullets.remove(bullet)
+
+        screen.fill((0, 0, 0))
+        ship.update()
+        screen.blit(ship.image, ship.rect.topleft)
+        for bullet in ship.bullets:
+            bullet.update()
+            screen.blit(bullet.image, bullet.rect.topleft)
+
         pygame.display.flip()
-        clock.tick(FPS)
+        clock.tick(240)
+
+    pygame.quit()
 
 
-def level_one():
-    print('WIP: level_one')
-
-
-def level_two():
-    print('WIP: level_two')
-
-
-if __name__ == '__main__':
-    pygame.init()
-    pygame.display.set_caption('')
-    size = width, height = 600, 900
-    screen = pygame.display.set_mode(size)
-    FPS, clock, running = 50, pygame.time.Clock(), True
-    start_screen((600, 400))
+if __name__ == "__main__":
+    main()
