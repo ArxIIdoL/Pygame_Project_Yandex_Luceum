@@ -1,73 +1,127 @@
 import pygame
-from pygame.locals import QUIT
-
-# Константы
-SCREEN_WIDTH = 600
-SCREEN_HEIGHT = 900
-SCROLL_SPEED = 2  # Скорость прокрутки
 
 
-class BackgroundManager:
-    def __init__(self, screen, backgrounds):
-        self.screen = screen
-        self.backgrounds = backgrounds
-        self.bg_count = len(backgrounds)
-        self.y_offsets = [i * SCREEN_HEIGHT for i in range(self.bg_count)]  # Смещение для каждого фона
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, x, y):
+        super().__init__()
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect(topleft=(x, y))
 
-    def update_and_draw(self):
-        # Двигаем фоны вниз
-        for i in range(self.bg_count):
-            self.y_offsets[i] += SCROLL_SPEED
+    def cut_sheet(self, sheet, columns, rows):
+        frame_width = sheet.get_width() // columns
+        frame_height = sheet.get_height() // rows
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (frame_width * i, frame_height * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, (frame_width, frame_height))))
 
-            # Если фон уходит вниз, сбрасываем его на верхнюю позицию
-            if self.y_offsets[i] >= SCREEN_HEIGHT:
-                self.y_offsets[i] = (self.y_offsets[i] - SCREEN_HEIGHT * self.bg_count)
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
 
-        # Очищаем экран перед новой отрисовкой
-        self.screen.fill((0, 0, 0))  # Черный фон
 
-        # Отображаем фоны
-        for i in range(self.bg_count):
-            self.screen.blit(self.backgrounds[i], (0, self.y_offsets[i]))
+class Ship(AnimatedSprite):
+    def __init__(self, x, y):
+        sheet = pygame.image.load("data/image/ship_sprite/ship.png").convert_alpha()
+        super().__init__(sheet, 4, 1, x, y)
+
+        self.bullets = []
+        self.last_shot_time = 0
+        self.shoot_delay = 175
+
+        # Параметры для эффекта вылета
+        self.is_flying_in = True
+        self.fly_in_speed = 2  # Скорость вылета
+        self.target_y = 700  # Конечная позиция корабля (где он должен остановиться)
+
+        # Устанавливаем начальную позицию
+        self.rect.y = 900  # Начинаем из нижней части экрана
+
+    def move(self, dx, dy):
+        self.rect.x += dx
+        self.rect.y += dy
+        self.rect.x = max(0, min(self.rect.x, 600 - self.rect.width))
+        self.rect.y = max(0, min(self.rect.y, 900 - self.rect.height))
+
+    def shoot(self, current_time):
+        if current_time - self.last_shot_time > self.shoot_delay:
+            bullet = Bullet(self.rect.centerx, self.rect.top)
+            self.bullets.append(bullet)
+            self.last_shot_time = current_time
+
+    def update(self):
+        if self.is_flying_in:
+            # Поднимаем корабль из-за нижней границы экрана
+            if self.rect.y > self.target_y:
+                self.rect.y -= self.fly_in_speed
+            else:
+                self.is_flying_in = False  # Остановить эффект вылета
+        super().update()
+
+
+class Bullet(AnimatedSprite):
+    def __init__(self, x, y):
+        sheet = pygame.image.load("data/image/bullet_sprite/All_Fire_Bullet_Pixel_16x16_00.png").convert_alpha()
+        super().__init__(sheet, 4, 1, x, y)
+        self.bullet_speed = 1.7
+
+        # Поворачиваем каждый кадр на 90 градусов влево
+        self.frames = [pygame.transform.rotate(frame, 90) for frame in self.frames]
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def move(self):
+        self.rect.y -= self.bullet_speed
 
 
 def main():
-    # Инициализируем Pygame
     pygame.init()
-
-    # Создаем окно
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-
-    # Загружаем фоны
-    backgrounds = []
-    for i in range(1, 4):  # Предполагаем, что у вас есть три изображения
-        filename = f'data/image/backgrounds image/level 1/Space Background ({i}).png'
-        bg = pygame.image.load(filename)
-        bg = pygame.transform.scale(bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
-        backgrounds.append(bg)
-
-    # Создаем объект менеджера фонов
-    background_manager = BackgroundManager(screen, backgrounds)
-
-    # Основной игровой цикл
-    running = True
+    screen = pygame.display.set_mode((600, 900))
     clock = pygame.time.Clock()
 
+    # Вычисляем начальную позицию по центру экрана
+    ship_x = (600 - 64) // 2  # 64 - ширина корабля (предположим, что корабль имеет ширину 64 пикселя)
+    ship = Ship(ship_x, 900)  # Начинаем из нижней части экрана
+
+    running = True
     while running:
+        current_time = pygame.time.get_ticks()
         for event in pygame.event.get():
-            if event.type == QUIT:
+            if event.type == pygame.QUIT:
                 running = False
 
-        # Обновляем и отрисовываем фон
-        background_manager.update_and_draw()
+        keys = pygame.key.get_pressed()
+        ship_speed = 1.2
+        if keys[pygame.K_a]:
+            ship.move(-ship_speed, 0)
+        if keys[pygame.K_d]:
+            ship.move(ship_speed, 0)
+        if keys[pygame.K_w]:
+            ship.move(0, -ship_speed)
+        if keys[pygame.K_s]:
+            ship.move(0, ship_speed)
+        if keys[pygame.K_SPACE]:
+            ship.shoot(current_time)
 
-        # Обновляем дисплей
+        for bullet in ship.bullets:
+            bullet.move()
+            if bullet.rect.y < 0:  # Проверяем, вышла ли пуля за верхнюю границу
+                ship.bullets.remove(bullet)
+
+        screen.fill((0, 0, 0))
+        ship.update()
+        screen.blit(ship.image, ship.rect.topleft)
+        for bullet in ship.bullets:
+            bullet.update()
+            screen.blit(bullet.image, bullet.rect.topleft)
+
         pygame.display.flip()
-
-        # Ограничиваем FPS до 60 кадров в секунду
         clock.tick(240)
 
-    # Завершаем работу программы
     pygame.quit()
 
 

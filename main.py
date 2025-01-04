@@ -1,6 +1,31 @@
-import pygame
-import sys
 import os
+import sys
+
+import pygame
+
+# Константы
+SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL = 600, 900
+FPS, CLOCK, SCROLL_SPEED = 60, pygame.time.Clock(), 0.4
+
+
+class BackgroundManager:
+    def __init__(self, screen, backgrounds):
+        self.screen, self.backgrounds = screen, backgrounds
+        self.bg_count = len(backgrounds)
+        self.y_offsets = [i * SCREEN_HEIGHT_LEVEL for i in range(self.bg_count)]  # Смещение для каждого фона
+
+    def update_and_draw(self):
+        # Двигаем фоны вниз
+        for i in range(self.bg_count):
+            self.y_offsets[i] += SCROLL_SPEED
+            # Если фон уходит вниз, сбрасываем его на верхнюю позицию
+            if self.y_offsets[i] >= SCREEN_HEIGHT_LEVEL:
+                self.y_offsets[i] = (self.y_offsets[i] - SCREEN_HEIGHT_LEVEL * self.bg_count)
+        # Очищаем экран перед новой отрисовкой
+        self.screen.fill((0, 0, 0))  # Черный фон
+        # Отображаем фоны
+        for i in range(self.bg_count):
+            self.screen.blit(self.backgrounds[i], (0, self.y_offsets[i]))
 
 
 def load_image(name, colorkey=None):
@@ -43,15 +68,16 @@ def terminate():
 
 def start_screen(screen_size):
     global FPS
-    size = 600, 400
-    screen = pygame.display.set_mode(size)
+    pygame.init()
+    screen = pygame.display.set_mode(screen_size)
     # Музыка
     pygame.mixer.init()
     pygame.mixer.music.load(load_music('start music background.mp3'))
-    pygame.mixer.music.play(loops=-1, fade_ms=6 * 1000)
+    pygame.mixer.music.set_volume(0.15)
+    pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
     pygame.display.set_icon(load_image('icon.jpg'))
     pygame.display.set_caption('AstroBlast')
-    fon = pygame.transform.scale(load_image('screen_saver/background.jpg'), screen_size)
+    fon = pygame.transform.scale(load_image('backgrounds image/first_screen_background.jpg'), screen_size)
     screen.blit(fon, (0, 0))
     # Название игры
     font = load_font(20)
@@ -76,11 +102,34 @@ def start_screen(screen_size):
                 elif 342 <= event.pos[0] <= 500 and 194 <= event.pos[1] <= 217:  # Открытие уровня 2
                     level_two()
         pygame.display.flip()
-        clock.tick(FPS)
+        CLOCK.tick(FPS)
 
 
 def level_one():
-    print('WIP: level_one')
+    global CLOCK
+    # Инициализируем Pygame
+    pygame.init()
+    # Создаем окно
+    os.environ['SDL_VIDEO_WINDOW_POS'] = '%i,%i' % (0, 0)
+    os.environ['SDL_VIDEO_CENTERED'] = '0'
+
+    screen = pygame.display.set_mode((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
+    # Загружаем фоны
+    backgrounds = []
+    for i in range(1, 10):  # Предполагаем, что у вас есть 9 изображений
+        filename = f'data/image/backgrounds image/level 1/Space Background ({i}).png'
+        bg = pygame.transform.scale(pygame.image.load(filename), (SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
+        backgrounds.append(bg)
+    # Создаем объект менеджера фонов
+    background_manager = BackgroundManager(screen, backgrounds)
+    # Основной игровой цикл
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+        background_manager.update_and_draw()  # Обновляем и отрисовываем фон
+        pygame.display.flip()  # Обновляем дисплей
+        CLOCK.tick(240)  # Ограничиваем FPS до 60 кадров в секунду
 
 
 def level_two():
@@ -88,9 +137,4 @@ def level_two():
 
 
 if __name__ == '__main__':
-    pygame.init()
-    pygame.display.set_caption('')
-    size = width, height = 600, 900
-    screen = pygame.display.set_mode(size)
-    FPS, clock, running = 50, pygame.time.Clock(), True
     start_screen((600, 400))
