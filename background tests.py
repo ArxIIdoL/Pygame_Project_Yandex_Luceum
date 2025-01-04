@@ -1,4 +1,5 @@
 import pygame
+import random
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
