@@ -33,7 +33,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 class Ship(AnimatedSprite):
     def __init__(self, x, y):
-        sheet = pygame.image.load("data/image/sprites/lvl 1/ship.png").convert_alpha()
+        sheet = pygame.image.load("data/image/sprites/ship.png").convert_alpha()
         super().__init__(sheet, 4, 1, x, y)
 
         self.bullets = []
@@ -72,7 +72,8 @@ class Ship(AnimatedSprite):
 
 class Bullet(AnimatedSprite):
     def __init__(self, x, y):
-        sheet = pygame.image.load("data/image/bullet_sprite/All_Fire_Bullet_Pixel_16x16_00.png").convert_alpha()
+        sheet = pygame.transform.scale(load_image('sprites/bullet 1.png'), (100, 100))
+         # = pygame.image.load("data/image/sprites/bullet 1.png").convert_alpha()
         super().__init__(sheet, 4, 1, x, y)
         self.bullet_speed = 1.7
 
@@ -190,7 +191,6 @@ def level_one():
     # Создаем окно
     os.environ['SDL_VIDEO_WINDOW_POS'] = '%i,%i' % (0, 0)
     os.environ['SDL_VIDEO_CENTERED'] = '0'
-
     screen = pygame.display.set_mode((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
     # Загружаем фоны
     backgrounds = []
@@ -201,8 +201,8 @@ def level_one():
     # Создаем объект менеджера фонов
     background_manager = BackgroundManager(screen, backgrounds)
     # Вычисляем начальную позицию по центру экрана
-    # ship_x = (600 - 64) // 2  # 64 - ширина корабля (предположим, что корабль имеет ширину 64 пикселя)
-    # ship = Ship(ship_x, 900)  # Начинаем из нижней части экрана
+    ship_x = (600 - 64) // 2  # 64 - ширина корабля (предположим, что корабль имеет ширину 64 пикселя)
+    ship = Ship(ship_x, 900)  # Начинаем из нижней части экрана
     # Основной игровой цикл
     while True:
         current_time = pygame.time.get_ticks()
@@ -210,30 +210,27 @@ def level_one():
             if event.type == pygame.QUIT:
                 terminate()
         background_manager.update_and_draw()  # Обновляем и отрисовываем фон
-        # keys = pygame.key.get_pressed()
-        # ship_speed = 1.2
-        # if keys[pygame.K_a]:
-        #     ship.move(-ship_speed, 0)
-        # if keys[pygame.K_d]:
-        #     ship.move(ship_speed, 0)
-        # if keys[pygame.K_w]:
-        #     ship.move(0, -ship_speed)
-        # if keys[pygame.K_s]:
-        #     ship.move(0, ship_speed)
-        # if keys[pygame.K_SPACE]:
-        #     ship.shoot(current_time)
-        #
-        # for bullet in ship.bullets:
-        #     bullet.move()
-        #     if bullet.rect.y < 0:  # Проверяем, вышла ли пуля за верхнюю границу
-        #         ship.bullets.remove(bullet)
-
-        # screen.fill((0, 0, 0))
-        # ship.update()
-        # screen.blit(ship.image, ship.rect.topleft)
-        # for bullet in ship.bullets:
-        #     bullet.update()
-        #     screen.blit(bullet.image, bullet.rect.topleft)
+        keys = pygame.key.get_pressed()
+        ship_speed = 1.2
+        if keys[pygame.K_a]:
+            ship.move(-ship_speed, 0)
+        if keys[pygame.K_d]:
+            ship.move(ship_speed, 0)
+        if keys[pygame.K_w]:
+            ship.move(0, -ship_speed)
+        if keys[pygame.K_s]:
+            ship.move(0, ship_speed)
+        if keys[pygame.K_SPACE]:
+            ship.shoot(current_time)
+        for bullet in ship.bullets:
+            bullet.move()
+            if bullet.rect.y < 0:  # Проверяем, вышла ли пуля за верхнюю границу
+                ship.bullets.remove(bullet)
+        ship.update()
+        screen.blit(ship.image, ship.rect.topleft)
+        for bullet in ship.bullets:
+            bullet.update()
+            screen.blit(bullet.image, bullet.rect.topleft)
         pygame.display.flip()  # Обновляем дисплей
         CLOCK.tick(FPS)
 

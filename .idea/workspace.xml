@@ -7,15 +7,7 @@
     <list default="true" id="241606ae-3a6d-4955-a48f-8e04d0d4329e" name="Changes" comment="Фон первого уровня вместе с начальным окном Alex">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/background tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/background tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/backgrounds image/level 1/Space Background (1).png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/backgrounds image/level 1/Space Background (2).png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/backgrounds image/level 1/Space Background (3).png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/backgrounds image/level 1/Space Background (4).png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/backgrounds image/level 1/Space Background (5).png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/backgrounds image/level 1/Space Background (6).png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/backgrounds image/level 1/Space Background (7).png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/backgrounds image/level 1/Space Background (8).png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/backgrounds image/level 1/Space Background (9).png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/image/sprites/lvl 1/ship.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -54,17 +46,17 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.background tests.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;46254911&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/Python/Pycharm/PyGame&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;configurable.group.appearance&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.background tests.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "550c38fe",
+    "last_opened_file_path": "D:/Python/Pycharm/PyGame",
+    "settings.editor.selected.configurable": "configurable.group.appearance"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Python.main">
     <configuration name="background tests" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="PyGame" />
@@ -202,7 +194,15 @@
       <option name="project" value="LOCAL" />
       <updated>1735998225379</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Фон первого уровня вместе с начальным окном Alex">
+      <option name="closed" value="true" />
+      <created>1736012910284</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1736012910284</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -233,6 +233,7 @@
     <MESSAGE value="Версия с почти готовым стартовым окном(в осталось сделать лишь звуковое сопроваждение)" />
     <MESSAGE value="готовая часть с начальным экраном" />
     <MESSAGE value="Фон первого уровня вместе с начальным окном" />
+    <MESSAGE value="Поменял фон теперь пытаюсь связать фон с космическим апаратом" />
     <MESSAGE value="Фон первого уровня вместе с начальным окном Alex" />
     <option name="LAST_COMMIT_MESSAGE" value="Фон первого уровня вместе с начальным окном Alex" />
   </component>
