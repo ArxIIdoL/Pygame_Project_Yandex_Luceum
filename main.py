@@ -35,7 +35,8 @@ class Ship(AnimatedSprite):
     def __init__(self, x, y):
         sheet = pygame.image.load("data/image/sprites/ship.png").convert_alpha()
         super().__init__(sheet, 4, 1, x, y)
-
+        self.sound_of_shot = pygame.mixer.Sound("data/music/shot.wav")
+        self.sound_of_shot.set_volume(0.12)
         self.bullets = []
         self.last_shot_time = 0
         self.shoot_delay = 175
@@ -56,6 +57,7 @@ class Ship(AnimatedSprite):
 
     def shoot(self, current_time):
         if current_time - self.last_shot_time > self.shoot_delay:
+            self.sound_of_shot.play()
             bullet = Bullet(self.rect.centerx, self.rect.top)
             self.bullets.append(bullet)
             self.last_shot_time = current_time
@@ -73,7 +75,7 @@ class Ship(AnimatedSprite):
 class Bullet(AnimatedSprite):
     def __init__(self, x, y):
         sheet = pygame.transform.scale(load_image('sprites/bullet 1.png'), (100, 100))
-         # = pygame.image.load("data/image/sprites/bullet 1.png").convert_alpha()
+        # = pygame.image.load("data/image/sprites/bullet 1.png").convert_alpha()
         super().__init__(sheet, 4, 1, x, y)
         self.bullet_speed = 1.7
 
@@ -188,6 +190,9 @@ def level_one():
     global FPS
     # Инициализируем Pygame
     pygame.init()
+    pygame.mixer.music.load(load_music('music in lvl 1.mp3'))
+    pygame.mixer.music.set_volume(0.15)
+    pygame.mixer.music.play(loops=-1, fade_ms=1 * 1000)
     # Создаем окно
     os.environ['SDL_VIDEO_WINDOW_POS'] = '%i,%i' % (0, 0)
     os.environ['SDL_VIDEO_CENTERED'] = '0'

@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="241606ae-3a6d-4955-a48f-8e04d0d4329e" name="Changes" comment="Фон первого уровня вместе с начальным окном Alex">
+    <list default="true" id="241606ae-3a6d-4955-a48f-8e04d0d4329e" name="Changes" comment="Баг с текстурами снарядов и космического корабля">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/background tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/background tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/image/sprites/lvl 1/ship.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -52,12 +51,12 @@
     "Python.main.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "550c38fe",
+    "git-widget-placeholder": "c9ff800e",
     "last_opened_file_path": "D:/Python/Pycharm/PyGame",
     "settings.editor.selected.configurable": "configurable.group.appearance"
   }
 }]]></component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python.background tests">
     <configuration name="background tests" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="PyGame" />
       <option name="ENV_FILES" value="" />
@@ -109,8 +108,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main" />
         <item itemvalue="Python.background tests" />
+        <item itemvalue="Python.main" />
       </list>
     </recent_temporary>
   </component>
@@ -202,7 +201,15 @@
       <option name="project" value="LOCAL" />
       <updated>1736012910284</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Баг с текстурами снарядов и космического корабля">
+      <option name="closed" value="true" />
+      <created>1736015319490</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1736015319490</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -235,6 +242,7 @@
     <MESSAGE value="Фон первого уровня вместе с начальным окном" />
     <MESSAGE value="Поменял фон теперь пытаюсь связать фон с космическим апаратом" />
     <MESSAGE value="Фон первого уровня вместе с начальным окном Alex" />
-    <option name="LAST_COMMIT_MESSAGE" value="Фон первого уровня вместе с начальным окном Alex" />
+    <MESSAGE value="Баг с текстурами снарядов и космического корабля" />
+    <option name="LAST_COMMIT_MESSAGE" value="Баг с текстурами снарядов и космического корабля" />
   </component>
 </project>
