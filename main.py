@@ -108,6 +108,28 @@ class BackgroundManager:
             self.screen.blit(self.backgrounds[i], (0, self.y_offsets[i]))
 
 
+class Interface:
+    def __init__(self):
+        self.full_heart = pygame.transform.scale(load_image(''), (60, 50))
+        self.spent_heart = pygame.transform.scale(load_image(''), (60, 50))
+        # self.player_health = 3
+        self.hp_bar = [True] * 3  # Список справа на лево полное ли сердце
+
+    def draw_hp_bar(self):
+        pass
+        # for full_heart in self.hp_bar[::-1]:
+
+    def change_health(self, take_damage=True):
+        try:
+            if take_damage:
+                self.hp_bar[self.hp_bar.index(True)] = False
+            else:
+                self.hp_bar[self.hp_bar.index(False)] = True
+        except ValueError:  # Если повышение или понижение хп превысит границы
+            return
+        self.draw_hp_bar()
+
+
 def load_image(name, colorkey=None):
     fullname = os.path.join('data/image', name)
     if not os.path.isfile(fullname):

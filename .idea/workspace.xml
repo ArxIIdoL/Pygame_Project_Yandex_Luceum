@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="241606ae-3a6d-4955-a48f-8e04d0d4329e" name="Changes" comment="Баг с текстурами снарядов и космического корабля">
+    <list default="true" id="241606ae-3a6d-4955-a48f-8e04d0d4329e" name="Changes" comment="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/background tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/background tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
@@ -51,7 +51,7 @@
     "Python.main.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "c9ff800e",
+    "git-widget-placeholder": "8de90211",
     "last_opened_file_path": "D:/Python/Pycharm/PyGame",
     "settings.editor.selected.configurable": "configurable.group.appearance"
   }
@@ -209,7 +209,15 @@
       <option name="project" value="LOCAL" />
       <updated>1736015319490</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку)">
+      <option name="closed" value="true" />
+      <created>1736030753522</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1736030753522</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -243,6 +251,7 @@
     <MESSAGE value="Поменял фон теперь пытаюсь связать фон с космическим апаратом" />
     <MESSAGE value="Фон первого уровня вместе с начальным окном Alex" />
     <MESSAGE value="Баг с текстурами снарядов и космического корабля" />
-    <option name="LAST_COMMIT_MESSAGE" value="Баг с текстурами снарядов и космического корабля" />
+    <MESSAGE value="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку)" />
   </component>
 </project>
