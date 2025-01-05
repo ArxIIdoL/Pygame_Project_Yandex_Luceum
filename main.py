@@ -165,8 +165,7 @@ def load_game_state(level_function):
     # Функция для загрузки сохраненного состояния уровня.
     try:
         with open("data/current state of the game/game_state.pkl", "rb") as file:
-            saved_state = pickle.load(file)
-            level_function.__dict__.update(saved_state)
+            level_function.__dict__.update(pickle.load(file))
     except FileNotFoundError:
         pass  # Игры нет, ничего не делаем
 
@@ -225,6 +224,7 @@ def start_screen(screen_size):
 
 
 def menu():
+    global music_volume
     # Размеры окна меню
     menu_widht, menu_height = 400, 300
     # Создание окна меню
@@ -237,17 +237,14 @@ def menu():
     font = pygame.font.Font(None, 36)
     # Надписи
     music_text = font.render("Music Volume:", True, (255, 255, 255))
-    sound_text = font.render("Sound Volume:", True, (255, 255, 255))
+
+    # sound_text = font.render("Sound Volume:", True, (255, 255, 255))
 
     # Ползунки для регулировки громкости
     def draw_slider(surf, x, y, w, h, color, value):
         pygame.draw.rect(surf, color, (x, y, w, h))
         handle_x = int(x + (w - 10) * value / 100)
         pygame.draw.rect(surf, (255, 0, 0), (handle_x, y, 10, h))
-
-    # Переменные для хранения текущей громкости музыки и звуков
-    music_volume = 30  # Начальная громкость музыки
-    sound_volume = 70  # Начальная громкость звуков
 
     running = True
     while running:
@@ -260,19 +257,16 @@ def menu():
                     if 20 <= mouse_pos[0] <= 380 and 120 <= mouse_pos[1] <= 140:
                         music_volume = int((mouse_pos[0] - 20) / 360 * 100)
                         pygame.mixer.music.set_volume(music_volume / 100)
-                    elif 20 <= mouse_pos[0] <= 380 and 220 <= mouse_pos[1] <= 240:
-                        sound_volume = int((mouse_pos[0] - 20) / 360 * 100)
         # Очистка экрана
         screen_menu.blit(background, (0, 0))
         # Отображение текста
         screen_menu.blit(music_text, (20, 80))
-        screen_menu.blit(sound_text, (20, 180))
         # Рисование ползунков
         draw_slider(screen_menu, 20, 120, 360, 20, (255, 255, 255), music_volume)
-        draw_slider(screen_menu, 20, 220, 360, 20, (255, 255, 255), sound_volume)
         # Обновление дисплея
         pygame.display.flip()
     # Возвращаемся к основному окну игры
+    pygame.display.set_caption("AstroBlast")
     pygame.display.set_mode((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
 
 
@@ -345,4 +339,5 @@ def level_two():
 
 
 if __name__ == '__main__':
+    music_volume = 15
     start_screen((600, 400))

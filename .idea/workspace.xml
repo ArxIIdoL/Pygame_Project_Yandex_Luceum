@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="241606ae-3a6d-4955-a48f-8e04d0d4329e" name="Changes" comment="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку + начал делать класс интерфейса)&#10;Баг с меню" />
+    <list default="true" id="241606ae-3a6d-4955-a48f-8e04d0d4329e" name="Changes" comment="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку + начал делать класс интерфейса)&#10;Баг с меню">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/background tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/background tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -25,7 +29,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="bags" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -41,17 +45,17 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.background tests.executor": "Run",
-    "Python.main.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "0d2718a4",
-    "last_opened_file_path": "D:/Python/Pycharm/PyGame",
-    "settings.editor.selected.configurable": "configurable.group.appearance"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.background tests.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;6e099760&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Python/Pycharm/PyGame&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;configurable.group.appearance&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Python.main">
     <configuration name="background tests" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="PyGame" />
@@ -104,6 +108,8 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.main" />
+        <item itemvalue="Python.background tests" />
         <item itemvalue="Python.main" />
         <item itemvalue="Python.background tests" />
       </list>
@@ -237,7 +243,15 @@
       <option name="project" value="LOCAL" />
       <updated>1736090820483</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку + начал делать класс интерфейса)&#10;Баг с меню">
+      <option name="closed" value="true" />
+      <created>1736091052149</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1736091052149</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -251,7 +265,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="origin/in_development" />
+                        <option value="bags" />
                       </list>
                     </value>
                   </entry>
@@ -275,16 +289,5 @@
     <MESSAGE value="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку + начал делать класс интерфейса)" />
     <MESSAGE value="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку + начал делать класс интерфейса)&#10;Баг с меню" />
     <option name="LAST_COMMIT_MESSAGE" value="Баг с текстурами снарядов и космического корабля(Теперь я добавил звуковые эффекты и новую музыку + начал делать класс интерфейса)&#10;Баг с меню" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>226</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
