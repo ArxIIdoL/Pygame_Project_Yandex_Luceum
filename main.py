@@ -1,4 +1,5 @@
 import os
+import pickle
 import sys
 
 import pygame
@@ -154,6 +155,22 @@ def load_music(type):
     return fullname
 
 
+def save_game_state(level_function):
+    # Функция для сохранения состояния уровня.
+    with open("data/current state of the game/game_state.pkl", "wb") as file:
+        pickle.dump(level_function.__dict__, file)
+
+
+def load_game_state(level_function):
+    # Функция для загрузки сохраненного состояния уровня.
+    try:
+        with open("data/current state of the game/game_state.pkl", "rb") as file:
+            saved_state = pickle.load(file)
+            level_function.__dict__.update(saved_state)
+    except FileNotFoundError:
+        pass  # Игры нет, ничего не делаем
+
+
 def load_font(size):
     fullname = os.path.join('data', 'font/PressStart2P-Regular.ttf')
     if not os.path.isfile(fullname):
@@ -207,9 +224,62 @@ def start_screen(screen_size):
         CLOCK.tick(FPS)
 
 
+def menu():
+    # Размеры окна меню
+    menu_widht, menu_height = 400, 300
+    # Создание окна меню
+    screen_menu = pygame.display.set_mode((menu_widht, menu_height))
+    pygame.display.set_caption("Menu")
+    # Фон меню
+    background = pygame.Surface(screen_menu.get_size())
+    background.fill((0, 0, 0))
+    # Шрифты
+    font = pygame.font.Font(None, 36)
+    # Надписи
+    music_text = font.render("Music Volume:", True, (255, 255, 255))
+    sound_text = font.render("Sound Volume:", True, (255, 255, 255))
+
+    # Ползунки для регулировки громкости
+    def draw_slider(surf, x, y, w, h, color, value):
+        pygame.draw.rect(surf, color, (x, y, w, h))
+        handle_x = int(x + (w - 10) * value / 100)
+        pygame.draw.rect(surf, (255, 0, 0), (handle_x, y, 10, h))
+
+    # Переменные для хранения текущей громкости музыки и звуков
+    music_volume = 30  # Начальная громкость музыки
+    sound_volume = 70  # Начальная громкость звуков
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                if event.button == 1:  # Левая кнопка мыши
+                    if 20 <= mouse_pos[0] <= 380 and 120 <= mouse_pos[1] <= 140:
+                        music_volume = int((mouse_pos[0] - 20) / 360 * 100)
+                        pygame.mixer.music.set_volume(music_volume / 100)
+                    elif 20 <= mouse_pos[0] <= 380 and 220 <= mouse_pos[1] <= 240:
+                        sound_volume = int((mouse_pos[0] - 20) / 360 * 100)
+        # Очистка экрана
+        screen_menu.blit(background, (0, 0))
+        # Отображение текста
+        screen_menu.blit(music_text, (20, 80))
+        screen_menu.blit(sound_text, (20, 180))
+        # Рисование ползунков
+        draw_slider(screen_menu, 20, 120, 360, 20, (255, 255, 255), music_volume)
+        draw_slider(screen_menu, 20, 220, 360, 20, (255, 255, 255), sound_volume)
+        # Обновление дисплея
+        pygame.display.flip()
+    # Возвращаемся к основному окну игры
+    pygame.display.set_mode((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
+
+
 def level_one():
     global CLOCK
     global FPS
+    pause = False
     # Инициализируем Pygame
     pygame.init()
     pygame.mixer.music.load(load_music('music in lvl 1.mp3'))
@@ -236,29 +306,37 @@ def level_one():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-        background_manager.update_and_draw()  # Обновляем и отрисовываем фон
-        keys = pygame.key.get_pressed()
-        ship_speed = 1.2
-        if keys[pygame.K_a]:
-            ship.move(-ship_speed, 0)
-        if keys[pygame.K_d]:
-            ship.move(ship_speed, 0)
-        if keys[pygame.K_w]:
-            ship.move(0, -ship_speed)
-        if keys[pygame.K_s]:
-            ship.move(0, ship_speed)
-        if keys[pygame.K_SPACE]:
-            ship.shoot(current_time)
-        for bullet in ship.bullets:
-            bullet.move()
-            if bullet.rect.y < 0:  # Проверяем, вышла ли пуля за верхнюю границу
-                ship.bullets.remove(bullet)
-        ship.update()
-        screen.blit(ship.image, ship.rect.topleft)
-        for bullet in ship.bullets:
-            bullet.update()
-            screen.blit(bullet.image, bullet.rect.topleft)
-        pygame.display.flip()  # Обновляем дисплей
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pause = not pause
+                if pause:
+                    save_game_state(level_one)  # Сохраняем текущее состояние уровня
+                    menu()  # Переходим в меню
+                    pause = False
+                    load_game_state(level_one)  # Восстанавливаем состояние уровня после выхода из меню
+        if not pause:
+            background_manager.update_and_draw()  # Обновляем и отрисовываем фон
+            keys = pygame.key.get_pressed()
+            ship_speed = 1.2
+            if keys[pygame.K_a]:
+                ship.move(-ship_speed, 0)
+            if keys[pygame.K_d]:
+                ship.move(ship_speed, 0)
+            if keys[pygame.K_w]:
+                ship.move(0, -ship_speed)
+            if keys[pygame.K_s]:
+                ship.move(0, ship_speed)
+            if keys[pygame.K_SPACE]:
+                ship.shoot(current_time)
+            for bullet in ship.bullets:
+                bullet.move()
+                if bullet.rect.y < 0:  # Проверяем, вышла ли пуля за верхнюю границу
+                    ship.bullets.remove(bullet)
+            ship.update()
+            screen.blit(ship.image, ship.rect.topleft)
+            for bullet in ship.bullets:
+                bullet.update()
+                screen.blit(bullet.image, bullet.rect.topleft)
+            pygame.display.flip()  # Обновляем дисплей
         CLOCK.tick(FPS)
 
 
