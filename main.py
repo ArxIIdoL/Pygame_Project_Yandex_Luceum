@@ -75,10 +75,10 @@ class Ship(AnimatedSprite):
 
 class Bullet(AnimatedSprite):
     def __init__(self, x, y):
-        sheet = pygame.transform.scale(load_image('sprites/bullet 1.png'), (100, 100))
+        sheet = pygame.transform.scale(load_image('sprites/bullet_sprite.png'), (100, 7))
         # = pygame.image.load("data/image/sprites/bullet 1.png").convert_alpha()
-        super().__init__(sheet, 4, 1, x, y)
-        self.bullet_speed = 1.7
+        super().__init__(sheet, 3, 1, x, y)
+        self.bullet_speed = 3
 
         # Поворачиваем каждый кадр на 90 градусов влево
         self.frames = [pygame.transform.rotate(frame, 90) for frame in self.frames]
@@ -311,7 +311,7 @@ def level_one():
         if not pause:
             background_manager.update_and_draw()  # Обновляем и отрисовываем фон
             keys = pygame.key.get_pressed()
-            ship_speed = 1.2
+            ship_speed = 2.2
             if keys[pygame.K_a]:
                 ship.move(-ship_speed, 0)
             if keys[pygame.K_d]:
