@@ -3,6 +3,7 @@ import pickle
 import sys
 
 import pygame
+import pygame_gui
 
 # Константы
 SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL = 600, 900
@@ -81,16 +82,12 @@ class Ship:
             else:
                 self.is_flying_in = False  # Остановить эффект вылета
 
-        # Здесь можно добавить логику для сброса поворота, если нужно
-        # Например, если корабль не должен быть постоянно в состоянии поворота:
-        # if not self.is_turning and self.rect.y < self.target_y:
-        #     self.reset_turn()
-
-    def draw(self, screen):
+        # Обновляем изображение в зависимости от состояния поворота
         if self.is_turning:
-            screen.blit(self.image_turn, self.rect)  # Рисуем изображение корабля при повороте
+            self.image = self.image_turn
         else:
-            screen.blit(self.image, self.rect)  # Рисуем статичное изображение корабля
+            self.image = pygame.image.load(
+                "data/image/sprites/ship.png").convert_alpha()  # Возвращаем основное изображение
 
 
 class Bullet(AnimatedSprite):
@@ -98,7 +95,7 @@ class Bullet(AnimatedSprite):
         sheet = pygame.transform.scale(load_image('sprites/bullet_sprite.png'), (100, 7))
         # = pygame.image.load("data/image/sprites/bullet 1.png").convert_alpha()
         super().__init__(sheet, 3, 1, x, y)
-        self.bullet_speed = 3
+        self.bullet_speed = 3.5
 
         # Поворачиваем каждый кадр на 90 градусов влево
         self.frames = [pygame.transform.rotate(frame, 90) for frame in self.frames]
@@ -208,8 +205,66 @@ def terminate():
     sys.exit()
 
 
+def input_window(screen_size):
+    global nickname
+    global FPS
+    pygame.init()
+    screen = pygame.display.set_mode(screen_size)
+    manager = pygame_gui.UIManager(screen_size)
+    # Музыка
+    pygame.mixer.init()
+    pygame.mixer.music.load(load_music('start music background.mp3'))
+    pygame.mixer.music.set_volume(0.15)
+    pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
+    pygame.display.set_icon(load_image('icon.jpg'))
+    pygame.display.set_caption('Entering name')
+    fon = pygame.transform.scale(load_image('backgrounds image/first_screen_background.jpg'), screen_size)
+    screen.blit(fon, (0, 0))
+    # screen.fill(pygame.Color("#00008B"))
+    # Название игры
+    font = load_font(12)
+    string_rendered = font.render("Введите имя", True, pygame.Color("White"))
+    intro_rect = string_rendered.get_rect()
+    intro_rect.top, intro_rect.x = 90, (screen_size[0] // 2) - 70
+    screen.blit(string_rendered, intro_rect)
+    clock = pygame.time.Clock()
+    enter_btn = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect(((screen_size[0] // 2) - 50, (screen_size[1] // 2) + 20), (100, 25)),
+        text='Ok',
+        manager=manager
+    )
+    user_name = pygame_gui.elements.UITextEntryLine(
+        relative_rect=pygame.Rect(((screen_size[0] // 2) - 110, 120), (210, 30))
+    )
+    nice_nickname = False
+
+    while True:
+        time_delta = clock.tick(60) / 1000.0
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+
+            if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
+                user_name_text = event.text
+                if not (user_name_text.replace('', ' ') == '') and (
+                        3 <= len(user_name_text) <= 12) and user_name_text.isalpha():
+                    nickname, nice_nickname = user_name_text, True
+                else:
+                    nickname, nice_nickname = '', False
+            elif event.type == pygame_gui.UI_BUTTON_PRESSED and event.ui_element == enter_btn:
+                if nice_nickname and bool(nickname):
+                    start_screen((600, 400))
+            manager.process_events(event)
+        manager.update(time_delta)
+        manager.draw_ui(screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 def start_screen(screen_size):
     global FPS
+    global nickname
+    print(nickname)
     pygame.init()
     screen = pygame.display.set_mode(screen_size)
     # Музыка
@@ -223,14 +278,14 @@ def start_screen(screen_size):
     screen.blit(fon, (0, 0))
     # Название игры
     font = load_font(20)
-    string_rendered = font.render("AstroBlast", 1, pygame.Color('White'))
+    string_rendered = font.render("AstroBlast", True, pygame.Color('White'))
     intro_rect = string_rendered.get_rect()
     intro_rect.top, intro_rect.x = 80, 200
     screen.blit(string_rendered, intro_rect)
     # Уровни
     font = load_font(16)
     for x, text in zip((100, 350), ("Уровень 1", "Уровень 2")):
-        string_rendered = font.render(text, 1, pygame.Color('White'))
+        string_rendered = font.render(text, False, pygame.Color('White'))
         intro_rect = string_rendered.get_rect()
         intro_rect.top, intro_rect.x = 200, x
         screen.blit(string_rendered, intro_rect)
@@ -358,7 +413,7 @@ def level_one():
             ship.update()
 
             screen.blit(ship.image, ship.rect.topleft)
-            ship.draw(screen)
+            # ship.draw(screen)
             for bullet in ship.bullets:
                 bullet.update()
                 screen.blit(bullet.image, bullet.rect.topleft)
@@ -376,5 +431,6 @@ def level_two():
 
 
 if __name__ == '__main__':
-    music_volume = 15
-    start_screen((600, 400))
+    music_volume, nickname = 15, ''
+    input_window((400, 300))
+    # start_screen((600, 400))
