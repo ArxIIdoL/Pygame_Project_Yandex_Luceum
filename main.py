@@ -4,7 +4,7 @@ import sys
 
 import pygame
 
-# Константы.
+# Константы
 SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL = 600, 900
 FPS, CLOCK, SCROLL_SPEED = 60, pygame.time.Clock(), 0.4
 
