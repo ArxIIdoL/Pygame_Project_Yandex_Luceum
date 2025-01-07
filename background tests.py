@@ -1,3 +1,180 @@
+import os
+import random
+import sys
+
+import pygame
+
+# Константы
+SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL = 600, 900
+FPS, CLOCK, SCROLL_SPEED = 60, pygame.time.Clock(), 0.4
+
+
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, x, y):
+        super().__init__()
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+    def cut_sheet(self, sheet, columns, rows):
+        frame_width = sheet.get_width() // columns
+        frame_height = sheet.get_height() // rows
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (frame_width * i, frame_height * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, (frame_width, frame_height))))
+
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
+
+
+class Ship(AnimatedSprite):
+    def __init__(self, x, y):
+        sheet = pygame.image.load("data/image/sprites/ship.png").convert_alpha()
+        super().__init__(sheet, 4, 1, x, y)
+        self.sound_of_shot = pygame.mixer.Sound("data/music/shot.wav")
+        self.sound_of_shot.set_volume(0.12)
+        self.bullets = []
+        self.last_shot_time = 0
+        self.shoot_delay = 175
+
+        # Параметры для эффекта вылета
+        self.is_flying_in = True
+        self.fly_in_speed = 2  # Скорость вылета
+        self.target_y = 700  # Конечная позиция корабля (где он должен остановиться)
+
+        # Устанавливаем начальную позицию
+        self.rect.y = 900  # Начинаем из нижней части экрана
+
+    def move(self, dx, dy):
+        self.rect.x += dx
+        self.rect.y += dy
+        self.rect.x = max(0, min(self.rect.x, 600 - self.rect.width))
+        self.rect.y = max(0, min(self.rect.y, 900 - self.rect.height))
+
+    def shoot(self, current_time):
+        if current_time - self.last_shot_time > self.shoot_delay:
+            self.sound_of_shot.play()
+            bullet = Bullet(self.rect.centerx, self.rect.top)
+            self.bullets.append(bullet)
+            self.last_shot_time = current_time
+
+    def update(self):
+        if self.is_flying_in:
+            # Поднимаем корабль из-за нижней границы экрана
+            if self.rect.y > self.target_y:
+                self.rect.y -= self.fly_in_speed
+            else:
+                self.is_flying_in = False  # Остановить эффект вылета
+        super().update()
+
+
+class Bullet(AnimatedSprite):
+    def __init__(self, x, y):
+        sheet = pygame.transform.scale(load_image('sprites/bullet 1.png'), (100, 100))
+        # = pygame.image.load("data/image/sprites/bullet 1.png").convert_alpha()
+        super().__init__(sheet, 4, 1, x, y)
+        self.bullet_speed = 1.7
+
+        # Поворачиваем каждый кадр на 90 градусов влево
+        self.frames = [pygame.transform.rotate(frame, 90) for frame in self.frames]
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def move(self):
+        self.rect.y -= self.bullet_speed
+
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('data/image', name)
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sys.exit()
+    image = pygame.image.load(fullname)
+    if colorkey is not None:
+        image = image.convert()
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+    else:
+        image = image.convert_alpha()
+    return image
+
+
+class Square:
+    def init(self):
+        self.size = 30
+        self.x = random.randint(0, 570)
+        self.y = random.randint(-30, 0)
+        self.speed = random.randint(1, 3)
+
+    def move(self):
+        self.y += self.speed
+
+
+def check_collision(ship, squares):
+    for square in squares:
+        if (ship.x < square.x + square.size and ship.x + ship.width > square.x and ship.y < square.y + square.size
+                and ship.y + ship.height > square.y):
+            return True
+    return False
+
+
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((600, 900))
+    clock = pygame.time.Clock()
+    ship = Ship(300, 800)
+    squares = []
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        keys = pygame.key.get_pressed()
+        speed = 1.2
+        if keys[pygame.K_a]:
+            ship.move(-speed, 0)
+        if keys[pygame.K_d]:
+            ship.move(speed, 0)
+        if keys[pygame.K_w]:
+            ship.move(0, -speed)
+        if keys[pygame.K_s]:
+            ship.move(0, speed)
+
+        # Проверяем столкновение
+        if check_collision(ship, squares):
+            main()
+
+        screen.fill((0, 0, 0))
+        pygame.draw.rect(screen, (255, 255, 255), (ship.x, ship.y, ship.width, ship.height))
+
+        for square in squares:
+            square.move()
+            pygame.draw.rect(screen, (255, 0, 0), (square.x, square.y, square.size, square.size))
+
+        # Добавляем новые квадраты каждые 50 кадров
+        if pygame.time.get_ticks() % 50 == 0:
+            squares.append(Square())
+
+        # Удаляем квадраты, которые ушли за границу экрана
+        squares = [square for square in squares if square.y < 900]
+
+        pygame.display.flip()
+        clock.tick(150)
+
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    main()
+
 # import os
 # import sys
 #
@@ -270,83 +447,65 @@
 #     start_screen((600, 400))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import pygame
-
-# Определение цветов
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-
-# Начальная установка
-pygame.init()
-screen = pygame.display.set_mode((600, 900))
-clock = pygame.time.Clock()
-
-
-class EnergyCharge(object):
-    def __init__(self, x, y, width, height):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.color = RED
-
-    def draw(self, surface):
-        rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(surface, self.color, rect)
-
-
-# # Создание спрайта энергетического заряда
-# energy_charge = EnergyCharge(100, 100, 8, 35)
-
-
-# Основной цикл игры
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-    screen.fill(BLACK)
-    rect = pygame.Rect(600 - 180, 50, 180, 50)
-    pygame.draw.rect(screen, 'Red', rect)
-    rect = pygame.Rect(300, 700, 50, 90)
-    pygame.draw.rect(screen, 'white', rect)
-
-    pygame.display.flip()
-    clock.tick(60)
-# def change_health(take_damage=True):
-#     global hp_bar
-#     try:
-#         if take_damage:
-#             hp_bar[hp_bar.index(True)] = False
-#         else:
-#             hp_bar[hp_bar.index(False)] = True
-#     except ValueError:
-#         print('Xn')
+# import pygame
+#
+# # Определение цветов
+# BLACK = (0, 0, 0)
+# WHITE = (255, 255, 255)
+# RED = (255, 0, 0)
+#
+# # Начальная установка
+# pygame.init()
+# screen = pygame.display.set_mode((600, 900))
+# clock = pygame.time.Clock()
 #
 #
-# hp_bar = [True] * 3
-# change_health(take_damage=False)
-# change_health(take_damage=False)
-# change_health()
-# print(hp_bar)
+# class EnergyCharge(object):
+#     def __init__(self, x, y, width, height):
+#         self.x = x
+#         self.y = y
+#         self.width = width
+#         self.height = height
+#         self.color = RED
+#
+#     def draw(self, surface):
+#         rect = pygame.Rect(self.x, self.y, self.width, self.height)
+#         pygame.draw.rect(surface, self.color, rect)
+#
+#
+# # # Создание спрайта энергетического заряда
+# # energy_charge = EnergyCharge(100, 100, 8, 35)
+#
+#
+# # Основной цикл игры
+# running = True
+# while running:
+#     for event in pygame.event.get():
+#         if event.type == pygame.QUIT:
+#             running = False
+#
+#     screen.fill(BLACK)
+#     rect = pygame.Rect(600 - 180, 50, 180, 50)
+#     pygame.draw.rect(screen, 'Red', rect)
+#     rect = pygame.Rect(300, 700, 50, 90)
+#     pygame.draw.rect(screen, 'white', rect)
+#
+#     pygame.display.flip()
+#     clock.tick(60)
+# # def change_health(take_damage=True):
+# #     global hp_bar
+# #     try:
+# #         if take_damage:
+# #             hp_bar[hp_bar.index(True)] = False
+# #         else:
+# #             hp_bar[hp_bar.index(False)] = True
+# #     except ValueError:
+# #         print('Xn')
 # #
+# #
+# # hp_bar = [True] * 3
+# # change_health(take_damage=False)
+# # change_health(take_damage=False)
+# # change_health()
+# # print(hp_bar)
+# # #

@@ -109,16 +109,17 @@ class BackgroundManager:
             self.screen.blit(self.backgrounds[i], (0, self.y_offsets[i]))
 
 
-class Interface:
+class Interface(pygame.sprite.Sprite):
     def __init__(self):
-        self.full_heart = pygame.transform.scale(load_image(''), (60, 50))
-        self.spent_heart = pygame.transform.scale(load_image(''), (60, 50))
-        # self.player_health = 3
+        super().__init__()
+        self.full_heart, self.spent_heart = load_image('sprites/full heart.png'), load_image('sprites/empty heart.png')
+        self.x_start, self.y_start = SCREEN_WIDTH_LEVEL - 180, 50
         self.hp_bar = [True] * 3  # Список справа на лево полное ли сердце
 
     def draw_hp_bar(self):
-        pass
-        # for full_heart in self.hp_bar[::-1]:
+        for is_full, x in zip(self.hp_bar[::-1], range(self.x_start, SCREEN_WIDTH_LEVEL, 60)):
+            heart = self.full_heart if is_full else self.spent_heart
+            # heart.rect.x, heart.rect.y =
 
     def change_health(self, take_damage=True):
         try:
