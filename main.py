@@ -32,10 +32,15 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
 
 
-class Ship(AnimatedSprite):
+import pygame
+
+import pygame
+
+class Ship:
     def __init__(self, x, y):
-        sheet = pygame.image.load("data/image/sprites/ship.png").convert_alpha()
-        super().__init__(sheet, 4, 1, x, y)
+        self.image = pygame.image.load("data/image/sprites/ship.png").convert_alpha()  # Основное изображение
+        self.image_turn = pygame.image.load("data/image/sprites/ship_turn.png").convert_alpha()  # Изображение для поворота
+        self.rect = self.image.get_rect(topleft=(x, y))
         self.sound_of_shot = pygame.mixer.Sound("data/music/shot.wav")
         self.sound_of_shot.set_volume(0.12)
         self.bullets = []
@@ -50,6 +55,8 @@ class Ship(AnimatedSprite):
         # Устанавливаем начальную позицию
         self.rect.y = 900  # Начинаем из нижней части экрана
 
+        self.is_turning = False  # Флаг для отслеживания поворота
+
     def move(self, dx, dy):
         self.rect.x += dx
         self.rect.y += dy
@@ -63,6 +70,12 @@ class Ship(AnimatedSprite):
             self.bullets.append(bullet)
             self.last_shot_time = current_time
 
+    def turn(self):
+        self.is_turning = True  # Устанавливаем флаг поворота
+
+    def reset_turn(self):
+        self.is_turning = False  # Сбрасываем флаг поворота
+
     def update(self):
         if self.is_flying_in:
             # Поднимаем корабль из-за нижней границы экрана
@@ -70,7 +83,17 @@ class Ship(AnimatedSprite):
                 self.rect.y -= self.fly_in_speed
             else:
                 self.is_flying_in = False  # Остановить эффект вылета
-        super().update()
+
+        # Здесь можно добавить логику для сброса поворота, если нужно
+        # Например, если корабль не должен быть постоянно в состоянии поворота:
+        # if not self.is_turning and self.rect.y < self.target_y:
+        #     self.reset_turn()
+
+    def draw(self, screen):
+        if self.is_turning:
+            screen.blit(self.image_turn, self.rect)  # Рисуем изображение корабля при повороте
+        else:
+            screen.blit(self.image, self.rect)  # Рисуем статичное изображение корабля
 
 
 class Bullet(AnimatedSprite):
@@ -312,10 +335,15 @@ def level_one():
             background_manager.update_and_draw()  # Обновляем и отрисовываем фон
             keys = pygame.key.get_pressed()
             ship_speed = 2.2
-            if keys[pygame.K_a]:
+            if keys[pygame.K_a]:  # Влево
                 ship.move(-ship_speed, 0)
-            if keys[pygame.K_d]:
+                ship.turn()  # Устанавливаем флаг поворота
+            elif keys[pygame.K_d]:  # Вправо
                 ship.move(ship_speed, 0)
+                ship.turn()
+            else:
+                ship.reset_turn()  # Если не нажаты клавиши A или D, сбрасываем флаг поворота
+
             if keys[pygame.K_w]:
                 ship.move(0, -ship_speed)
             if keys[pygame.K_s]:
@@ -327,7 +355,9 @@ def level_one():
                 if bullet.rect.y < 0:  # Проверяем, вышла ли пуля за верхнюю границу
                     ship.bullets.remove(bullet)
             ship.update()
+
             screen.blit(ship.image, ship.rect.topleft)
+            ship.draw(screen)
             for bullet in ship.bullets:
                 bullet.update()
                 screen.blit(bullet.image, bullet.rect.topleft)
