@@ -32,14 +32,11 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
 
 
-import pygame
-
-import pygame
-
 class Ship:
     def __init__(self, x, y):
         self.image = pygame.image.load("data/image/sprites/ship.png").convert_alpha()  # Основное изображение
-        self.image_turn = pygame.image.load("data/image/sprites/ship_turn.png").convert_alpha()  # Изображение для поворота
+        self.image_turn = pygame.image.load(
+            "data/image/sprites/ship_turn.png").convert_alpha()  # Изображение для поворота
         self.rect = self.image.get_rect(topleft=(x, y))
         self.sound_of_shot = pygame.mixer.Sound("data/music/shot.wav")
         self.sound_of_shot.set_volume(0.12)
@@ -135,24 +132,27 @@ class BackgroundManager:
 class Interface(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.full_heart, self.spent_heart = load_image('sprites/full heart.png'), load_image('sprites/empty heart.png')
-        self.x_start, self.y_start = SCREEN_WIDTH_LEVEL - 180, 50
-        self.hp_bar = [True] * 3  # Список справа на лево полное ли сердце
+        self.full_heart = load_image('sprites/full heart.png')
+        self.empty_heart = load_image('sprites/empty heart.png')
+        self.x_start = SCREEN_WIDTH_LEVEL - 180
+        self.y_start = 10
+        self.hp_bar = [True] * 3  # Список для состояния сердечек (полное или пустое)
+        self.dead = 0
 
-    def draw_hp_bar(self):
+    def draw_hp_bar(self, screen):
         for is_full, x in zip(self.hp_bar[::-1], range(self.x_start, SCREEN_WIDTH_LEVEL, 60)):
-            heart = self.full_heart if is_full else self.spent_heart
-            # heart.rect.x, heart.rect.y =
+            heart = self.full_heart if is_full else self.empty_heart
+            screen.blit(heart, (x, self.y_start))  # Рисуем сердце на экране
 
     def change_health(self, take_damage=True):
-        try:
-            if take_damage:
-                self.hp_bar[self.hp_bar.index(True)] = False
-            else:
-                self.hp_bar[self.hp_bar.index(False)] = True
-        except ValueError:  # Если повышение или понижение хп превысит границы
-            return
-        self.draw_hp_bar()
+        if take_damage:
+            if self.dead < len(self.hp_bar):  # Проверяем, не превышает ли dead количество сердечек
+                self.hp_bar[self.dead] = False  # Устанавливаем сердце как пустое
+                self.dead += 1
+        else:
+            if self.dead > 0:  # Проверяем, есть ли пустые сердца для восстановления
+                self.dead -= 1
+                self.hp_bar[self.dead] = True  # Устанавливаем сердце как полное
 
 
 def load_image(name, colorkey=None):
@@ -295,6 +295,7 @@ def menu():
 
 
 def level_one():
+    interface = Interface()
     global CLOCK
     global FPS
     pause = False
@@ -352,7 +353,7 @@ def level_one():
                 ship.shoot(current_time)
             for bullet in ship.bullets:
                 bullet.move()
-                if bullet.rect.y < 0:  # Проверяем, вышла ли пуля за верхнюю границу
+                if bullet.rect.y < - 12:
                     ship.bullets.remove(bullet)
             ship.update()
 
@@ -361,6 +362,11 @@ def level_one():
             for bullet in ship.bullets:
                 bullet.update()
                 screen.blit(bullet.image, bullet.rect.topleft)
+
+            pygame.draw.rect(screen, '#4B0082', (410, 0, 200, 70))
+            pygame.draw.rect(screen, '#D3D3D3', (410, 0, 200, 70), 3)
+
+            interface.draw_hp_bar(screen)
             pygame.display.flip()  # Обновляем дисплей
         CLOCK.tick(FPS)
 
