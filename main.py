@@ -389,18 +389,52 @@ def check_bullet_collision(bullets, asteroids):
                 return  # Выходим из функции после первого столкновения
 
 
+class Explosion:
+    def __init__(self, x, y):
+        # Загружаем изображение с 8 спрайтами
+        sheet = pygame.image.load("data/image/sprites/boom2.png")  # Замените на ваше изображение
+        frame_width = sheet.get_width() // 8  # Предполагается, что 8 спрайтов в одной строке
+        frame_height = sheet.get_height()
+
+        # Вырезаем спрайты из изображения
+        self.sprites = []
+        for i in range(8):
+            frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
+            self.sprites.append(frame)
+
+        self.current_frame = 0  # Индекс текущего кадра
+        self.frame_duration = 100  # Продолжительность каждого кадра в мс
+        self.last_update = pygame.time.get_ticks()  # Время последнего обновления
+        self.rect = self.sprites[0].get_rect(center=(x, y))  # Позиция взрыва
+        self.active = True  # Флаг активности анимации
+
+    def update(self):
+        if self.active:
+            current_time = pygame.time.get_ticks()
+            # Проверяем, пора ли переходить к следующему кадру
+            if current_time - self.last_update >= self.frame_duration:
+                self.last_update = current_time
+                self.current_frame += 1
+                # Если анимация завершена, деактивируем её
+                if self.current_frame >= len(self.sprites):
+                    self.active = False
+
+    def draw(self, surface):
+        if self.active:
+            surface.blit(self.sprites[self.current_frame], self.rect.topleft)
+
+
+# Внутри функции level_one()
 def level_one():
     asteroids = []
     interface = Interface()
     global CLOCK
     global FPS
     pause = False
-    explosion_active = False
-    explosion_time = 0
+    explosions = []  # Список для хранения активных взрывов
     flash_time = 0
     flash_active = False
-    explosion_image = pygame.image.load("data/image/sprites/boom.png")  # загружаем изображение взрыва
-    explosion_rect = None  # переменная для позиции взрыва
+    ship_flash_duration = 1000  # Длительность мерцания в мс
     # Инициализируем Pygame
     pygame.init()
     pygame.mixer.music.load(load_music('music in lvl 1.mp3'))
@@ -463,37 +497,36 @@ def level_one():
                         print("Game Over! Restarting level...")
                         level_one()
 
-                    # Убираем астероид и показываем взрыв
-                    explosion_active = True
-                    explosion_time = current_time  # сохраняем текущее время
-                    explosion_rect = explosion_image.get_rect(
-                        center=(asteroid.x + asteroid.size // 2, asteroid.y + asteroid.size // 2))
+                    # Убираем астероид и создаем взрыв
+                    explosion = Explosion(ship.rect.centerx, ship.rect.centery)  # Позиция взрыва - позиция корабля
+                    explosions.append(explosion)  # Добавляем взрыв в список
                     asteroids.remove(asteroid)  # Удаляем астероид
 
-
+                    # Запускаем мерцание
                     flash_active = True
-                    flash_time = current_time  # сохраняем текущее время мерцания
+                    flash_time = current_time  # Сохраняем текущее время мерцания
                     break  # Выходим из цикла, чтобы избежать изменения списка во время итерации
 
             # Обработка мерцания корабля
             if flash_active:
-                for asteroid in asteroids:
-                    asteroids.remove(asteroid)
-                if (current_time - flash_time) < 1000:  # мерцание в течение 1 секунды
+                if (current_time - flash_time) < ship_flash_duration:  # мерцание в течение установленной длительности
                     # Мерцание: показываем корабль через 100 мс
                     if (current_time // 100) % 2 == 0:
                         screen.blit(ship.image, ship.rect.topleft)
                 else:
                     flash_active = False  # Отключаем мерцание
-                    ship.rect.y = 700
-                    ship.rect.x = 250  # возвращаем корабль на место
+                    ship.rect.y = 700  # Сброс позиции корабля при необходимости
+                    ship.rect.x = 250  # Сброс позиции корабля при необходимости
 
+            # Обновляем и отображаем взрывы
+            for explosion in explosions:
+                explosion.update()
+                explosion.draw(screen)
 
-            # Обновляем позицию астероидов, только если корабль не мерцает
-            if not flash_active:
-                for asteroid in asteroids:
-                    asteroid.move()
-                    pygame.draw.rect(screen, (255, 0, 0), (asteroid.x, asteroid.y, asteroid.size, asteroid.size))
+            # Обновляем позицию астероидов
+            for asteroid in asteroids:
+                asteroid.move()
+                pygame.draw.rect(screen, (255, 0, 0), (asteroid.x, asteroid.y, asteroid.size, asteroid.size))
 
             # Добавляем новые астероиды
             if pygame.time.get_ticks() % 15 == 0:
@@ -520,13 +553,6 @@ def level_one():
             for bullet in ship.bullets:
                 bullet.update()
                 screen.blit(bullet.image, bullet.rect.topleft)
-
-            # Отображаем взрыв, если он активен
-            if explosion_active:
-                screen.blit(explosion_image, explosion_rect)
-                # Проверяем, нужно ли скрыть взрыв
-                if current_time - explosion_time >= 1000:  # 1000 мс = 1 секунда
-                    explosion_active = False
 
             pygame.draw.rect(screen, '#4B0082', (410, 0, 200, 70))
             pygame.draw.rect(screen, '#D3D3D3', (410, 0, 200, 70), 3)
