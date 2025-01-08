@@ -1,6 +1,7 @@
 import os
 import pickle
 import sys
+import random
 
 import pygame
 import pygame_gui
@@ -82,18 +83,39 @@ class Ship:
             else:
                 self.is_flying_in = False  # Остановить эффект вылета
 
-        # Обновляем изображение в зависимости от состояния поворота
-        if self.is_turning:
-            self.image = self.image_turn
-        else:
-            self.image = pygame.image.load(
-                "data/image/sprites/ship.png").convert_alpha()  # Возвращаем основное изображение
+        # # Обновляем изображение в зависимости от состояния поворота
+        # if self.is_turning:
+        #     self.image = self.image_turn
+        # else:
+        #     self.image = pygame.image.load(
+        #         "data/image/sprites/ship.png").convert_alpha()  # Возвращаем основное изображение
+
+
+class Asteroid:
+    def __init__(self):
+        self.size = 30
+        self.x = random.randint(0, 570)
+        self.y = random.randint(-30, 0)
+        self.speed = random.randint(5, 10)
+        self.collision_occurred = False
+
+    def move(self):
+        self.y += self.speed
+
+
+def check_collision(ship, asteroids):
+    for asteroid in asteroids:
+        if (ship.rect.x < asteroid.x + asteroid.size and
+                ship.rect.x + 50 > asteroid.x and
+                ship.rect.y < asteroid.y + asteroid.size and
+                ship.rect.y + 90 > asteroid.y):
+            return True  # Возвращаем True при столкновении
+    return False  # Возвращаем False, если столкновений не было
 
 
 class Bullet(AnimatedSprite):
     def __init__(self, x, y):
         sheet = pygame.transform.scale(load_image('sprites/bullet_sprite.png'), (100, 7))
-        # = pygame.image.load("data/image/sprites/bullet 1.png").convert_alpha()
         super().__init__(sheet, 3, 1, x, y)
         self.bullet_speed = 3.5
 
@@ -140,6 +162,12 @@ class Interface(pygame.sprite.Sprite):
         for is_full, x in zip(self.hp_bar[::-1], range(self.x_start, SCREEN_WIDTH_LEVEL, 60)):
             heart = self.full_heart if is_full else self.empty_heart
             screen.blit(heart, (x, self.y_start))  # Рисуем сердце на экране
+
+    def check_health(self):
+        if self.hp_bar == [False, False, False]:
+            return True
+        else:
+            return False
 
     def change_health(self, take_damage=True):
         if take_damage:
@@ -349,11 +377,30 @@ def menu():
     pygame.display.set_mode((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
 
 
+def check_bullet_collision(bullets, asteroids):
+    for bullet in bullets:
+        for asteroid in asteroids:
+            if (bullet.rect.x < asteroid.x + asteroid.size and
+                    bullet.rect.x + bullet.rect.width > asteroid.x and
+                    bullet.rect.y < asteroid.y + asteroid.size and
+                    bullet.rect.y + bullet.rect.height > asteroid.y):
+                asteroids.remove(asteroid)  # Удаляем квадрат
+                bullets.remove(bullet)  # Удаляем пулю
+                return  # Выходим из функции после первого столкновения
+
+
 def level_one():
+    asteroids = []
     interface = Interface()
     global CLOCK
     global FPS
     pause = False
+    explosion_active = False
+    explosion_time = 0
+    flash_time = 0
+    flash_active = False
+    explosion_image = pygame.image.load("data/image/sprites/boom.png")  # загружаем изображение взрыва
+    explosion_rect = None  # переменная для позиции взрыва
     # Инициализируем Pygame
     pygame.init()
     pygame.mixer.music.load(load_music('music in lvl 1.mp3'))
@@ -391,6 +438,8 @@ def level_one():
             background_manager.update_and_draw()  # Обновляем и отрисовываем фон
             keys = pygame.key.get_pressed()
             ship_speed = 2.2
+
+            # Движение корабля
             if keys[pygame.K_a]:  # Влево
                 ship.move(-ship_speed, 0)
                 ship.turn()  # Устанавливаем флаг поворота
@@ -404,19 +453,80 @@ def level_one():
                 ship.move(0, -ship_speed)
             if keys[pygame.K_s]:
                 ship.move(0, ship_speed)
+
+            # Проверяем столкновение с астероидами
+            for asteroid in asteroids:
+                if check_collision(ship, [asteroid]) and not asteroid.collision_occurred:
+                    asteroid.collision_occurred = True
+                    interface.change_health()
+                    if interface.check_health():
+                        print("Game Over! Restarting level...")
+                        level_one()
+
+                    # Убираем астероид и показываем взрыв
+                    explosion_active = True
+                    explosion_time = current_time  # сохраняем текущее время
+                    explosion_rect = explosion_image.get_rect(
+                        center=(asteroid.x + asteroid.size // 2, asteroid.y + asteroid.size // 2))
+                    asteroids.remove(asteroid)  # Удаляем астероид
+
+
+                    flash_active = True
+                    flash_time = current_time  # сохраняем текущее время мерцания
+                    break  # Выходим из цикла, чтобы избежать изменения списка во время итерации
+
+            # Обработка мерцания корабля
+            if flash_active:
+                for asteroid in asteroids:
+                    asteroids.remove(asteroid)
+                if (current_time - flash_time) < 1000:  # мерцание в течение 1 секунды
+                    # Мерцание: показываем корабль через 100 мс
+                    if (current_time // 100) % 2 == 0:
+                        screen.blit(ship.image, ship.rect.topleft)
+                else:
+                    flash_active = False  # Отключаем мерцание
+                    ship.rect.y = 700
+                    ship.rect.x = 250  # возвращаем корабль на место
+
+
+            # Обновляем позицию астероидов, только если корабль не мерцает
+            if not flash_active:
+                for asteroid in asteroids:
+                    asteroid.move()
+                    pygame.draw.rect(screen, (255, 0, 0), (asteroid.x, asteroid.y, asteroid.size, asteroid.size))
+
+            # Добавляем новые астероиды
+            if pygame.time.get_ticks() % 15 == 0:
+                asteroids.append(Asteroid())
+
+            asteroids = [asteroid for asteroid in asteroids if asteroid.y < 900]
+
             if keys[pygame.K_SPACE]:
                 ship.shoot(current_time)
             for bullet in ship.bullets:
                 bullet.move()
-                if bullet.rect.y < - 12:
+                if bullet.rect.y < -12:
                     ship.bullets.remove(bullet)
+
+            check_bullet_collision(ship.bullets, asteroids)
+
             ship.update()
 
-            screen.blit(ship.image, ship.rect.topleft)
-            # ship.draw(screen)
+            # Отображаем корабль, если он не мерцает
+            if not flash_active:
+                screen.blit(ship.image, ship.rect.topleft)
+
+            # Отображаем пули
             for bullet in ship.bullets:
                 bullet.update()
                 screen.blit(bullet.image, bullet.rect.topleft)
+
+            # Отображаем взрыв, если он активен
+            if explosion_active:
+                screen.blit(explosion_image, explosion_rect)
+                # Проверяем, нужно ли скрыть взрыв
+                if current_time - explosion_time >= 1000:  # 1000 мс = 1 секунда
+                    explosion_active = False
 
             pygame.draw.rect(screen, '#4B0082', (410, 0, 200, 70))
             pygame.draw.rect(screen, '#D3D3D3', (410, 0, 200, 70), 3)
