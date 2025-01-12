@@ -36,10 +36,23 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 class Ship:
     def __init__(self, x, y):
-        self.image = pygame.image.load("data/image/sprites/ship.png").convert_alpha()  # Основное изображение
-        self.image_turn = pygame.image.load(
-            "data/image/sprites/ship_turn.png").convert_alpha()  # Изображение для поворота
-        self.rect = self.image.get_rect(topleft=(x, y))
+        self.image = pygame.image.load(
+            "data/image/sprites/spaceship straight.png").convert_alpha()  # Основное изображение
+        self.image_turn_left = pygame.image.load(
+            "data/image/sprites/spaceship left.png").convert_alpha()  # Изображение для поворота налево
+        self.image_turn_right = pygame.image.load(
+            "data/image/sprites/spaceship right.png").convert_alpha()  # Изображение для поворота направо
+
+        # Растягиваем изображение корабля
+        self.image = pygame.transform.scale(self.image, (
+            self.image.get_width() * 1.5, self.image.get_height() * 1.5))
+        self.image_turn_left = pygame.transform.scale(self.image_turn_left, (
+            self.image_turn_left.get_width() * 1.5, self.image_turn_left.get_height() * 1.5))
+        self.image_turn_right = pygame.transform.scale(self.image_turn_right, (
+            self.image_turn_right.get_width() * 1.5, self.image_turn_right.get_height() * 1.5))
+
+        self.rect = self.image.get_rect(center=(x, y))
+
         self.sound_of_shot = pygame.mixer.Sound("data/music/shot.wav")
         self.sound_of_shot.set_volume(0.12)
         self.bullets = []
@@ -55,6 +68,7 @@ class Ship:
         self.rect.y = 900  # Начинаем из нижней части экрана
 
         self.is_turning = False  # Флаг для отслеживания поворота
+        self.turn_direction = None  # Направление поворота (None, 'left' или 'right')
 
     def move(self, dx, dy):
         self.rect.x += dx
@@ -62,18 +76,39 @@ class Ship:
         self.rect.x = max(0, min(self.rect.x, 600 - self.rect.width))
         self.rect.y = max(0, min(self.rect.y, 900 - self.rect.height))
 
-    def shoot(self, current_time):
+    ########################Одиночный выстрел справа####################################################################
+    def shoot1(self, current_time):
         if current_time - self.last_shot_time > self.shoot_delay:
             self.sound_of_shot.play()
             bullet = Bullet(self.rect.centerx, self.rect.top)
             self.bullets.append(bullet)
             self.last_shot_time = current_time
 
-    def turn(self):
+    ########################С обоих сторон########################################################################
+    def shoot2(self, current_time):
+        if current_time - self.last_shot_time > self.shoot_delay:
+            self.sound_of_shot.play()
+            bullet = Bullet(self.rect.centerx - 30, self.rect.top)
+            self.bullets.append(bullet)
+            bullet = Bullet(self.rect.centerx, self.rect.top)
+            self.bullets.append(bullet)
+            self.last_shot_time = current_time
+
+    ########################Одиночный из середины#######################################################################
+    def shoot(self, current_time):
+        if current_time - self.last_shot_time > self.shoot_delay:
+            self.sound_of_shot.play()
+            bullet = Bullet(self.rect.centerx - 18, self.rect.top)
+            self.bullets.append(bullet)
+            self.last_shot_time = current_time
+
+    def turn(self, direction):
         self.is_turning = True  # Устанавливаем флаг поворота
+        self.turn_direction = direction  # Запоминаем направление поворота
 
     def reset_turn(self):
         self.is_turning = False  # Сбрасываем флаг поворота
+        self.turn_direction = None  # Сбрасываем направление поворота
 
     def update(self):
         if self.is_flying_in:
@@ -83,12 +118,24 @@ class Ship:
             else:
                 self.is_flying_in = False  # Остановить эффект вылета
 
-        # # Обновляем изображение в зависимости от состояния поворота
-        # if self.is_turning:
-        #     self.image = self.image_turn
-        # else:
-        #     self.image = pygame.image.load(
-        #         "data/image/sprites/ship.png").convert_alpha()  # Возвращаем основное изображение
+        # Обновляем изображение в зависимости от состояния поворота
+        if self.is_turning:
+            if self.turn_direction == 'left':
+                self.image = self.image_turn_left
+            elif self.turn_direction == 'right':
+                self.image = self.image_turn_right
+        else:
+            self.image = pygame.transform.scale(pygame.image.load(
+                "data/image/sprites/spaceship straight.png").convert_alpha(), (
+                                                    self.image.get_width(),
+                                                    self.image.get_height()))  # Возвращаем основное изображение
+
+        # Обновляем rect для текущего изображения
+        self.rect = self.image.get_rect(center=self.rect.center)  # Сохраняем центр для правильной позиции
+
+    def draw_hitbox(self, screen):
+        # Рисуем хитбокс (прямоугольник)
+        pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
 
 
 class Asteroid:
@@ -106,11 +153,11 @@ class Asteroid:
 def check_collision(ship, asteroids):
     for asteroid in asteroids:
         if (ship.rect.x < asteroid.x + asteroid.size and
-                ship.rect.x + 50 > asteroid.x and
+                ship.rect.x + ship.rect.width > asteroid.x and
                 ship.rect.y < asteroid.y + asteroid.size and
-                ship.rect.y + 90 > asteroid.y):
+                ship.rect.y + ship.rect.height > asteroid.y):
             return True  # Возвращаем True при столкновении
-    return False  # Возвращаем False, если столкновений не было
+    return False
 
 
 class Bullet(AnimatedSprite):
@@ -126,6 +173,7 @@ class Bullet(AnimatedSprite):
 
     def move(self):
         self.rect.y -= self.bullet_speed
+        self.bullet_speed += 0.08
 
 
 class BackgroundManager:
@@ -154,14 +202,18 @@ class Interface(pygame.sprite.Sprite):
         self.full_heart = load_image('sprites/full heart.png')
         self.empty_heart = load_image('sprites/empty heart.png')
         self.x_start = SCREEN_WIDTH_LEVEL - 180
-        self.y_start = 10
+        self.y_start = 19
         self.hp_bar = [True] * 3  # Список для состояния сердечек (полное или пустое)
         self.dead = 0
 
+        # Изменяем размер сердечек
+        self.full_heart = pygame.transform.scale(self.full_heart, (45, 45))
+        self.empty_heart = pygame.transform.scale(self.empty_heart, (45, 45))
+
     def draw_hp_bar(self, screen):
-        for is_full, x in zip(self.hp_bar[::-1], range(self.x_start, SCREEN_WIDTH_LEVEL, 60)):
+        for is_full, x in zip(self.hp_bar[::-1], range(self.x_start, SCREEN_WIDTH_LEVEL, 50)):
             heart = self.full_heart if is_full else self.empty_heart
-            screen.blit(heart, (x, self.y_start))  # Рисуем сердце на экране
+            screen.blit(heart, (x, self.y_start))
 
     def check_health(self):
         if self.hp_bar == [False, False, False]:
@@ -392,7 +444,7 @@ def check_bullet_collision(bullets, asteroids):
 class Explosion:
     def __init__(self, x, y):
         # Загружаем изображение с 8 спрайтами
-        sheet = pygame.image.load("data/image/sprites/boom2.png")  # Замените на ваше изображение
+        sheet = pygame.image.load("data/image/sprites/boom2.png")
         frame_width = sheet.get_width() // 8  # Предполагается, что 8 спрайтов в одной строке
         frame_height = sheet.get_height()
 
@@ -435,26 +487,33 @@ def level_one():
     flash_time = 0
     flash_active = False
     ship_flash_duration = 1000  # Длительность мерцания в мс
+    show_hitbox = False  # Флаг для отображения хитбокса
+
     # Инициализируем Pygame
     pygame.init()
     pygame.mixer.music.load(load_music('music in lvl 1.mp3'))
     pygame.mixer.music.set_volume(0.15)
     pygame.mixer.music.play(loops=-1, fade_ms=1 * 1000)
+
     # Создаем окно
     os.environ['SDL_VIDEO_WINDOW_POS'] = '%i,%i' % (0, 0)
     os.environ['SDL_VIDEO_CENTERED'] = '0'
     screen = pygame.display.set_mode((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
+
     # Загружаем фоны
     backgrounds = []
     for i in range(5):
         filename = f'data/image/backgrounds image/level 1/Space_Stars.png'
         bg = pygame.transform.scale(pygame.image.load(filename), (SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
         backgrounds.append(bg)
+
     # Создаем объект менеджера фонов
     background_manager = BackgroundManager(screen, backgrounds)
+
     # Вычисляем начальную позицию по центру экрана
     ship_x = (600 - 64) // 2  # 64 - ширина корабля (предположим, что корабль имеет ширину 64 пикселя)
     ship = Ship(ship_x, 900)  # Начинаем из нижней части экрана
+
     # Основной игровой цикл
     while True:
         current_time = pygame.time.get_ticks()
@@ -468,6 +527,9 @@ def level_one():
                     menu()  # Переходим в меню
                     pause = False
                     load_game_state(level_one)  # Восстанавливаем состояние уровня после выхода из меню
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
+                show_hitbox = not show_hitbox  # Переключаем отображение хитбокса
+
         if not pause:
             background_manager.update_and_draw()  # Обновляем и отрисовываем фон
             keys = pygame.key.get_pressed()
@@ -476,10 +538,10 @@ def level_one():
             # Движение корабля
             if keys[pygame.K_a]:  # Влево
                 ship.move(-ship_speed, 0)
-                ship.turn()  # Устанавливаем флаг поворота
+                ship.turn('left')  # Устанавливаем флаг поворота
             elif keys[pygame.K_d]:  # Вправо
                 ship.move(ship_speed, 0)
-                ship.turn()
+                ship.turn('right')
             else:
                 ship.reset_turn()  # Если не нажаты клавиши A или D, сбрасываем флаг поворота
 
@@ -544,6 +606,9 @@ def level_one():
             check_bullet_collision(ship.bullets, asteroids)
 
             ship.update()
+            # Отображаем хитбокс, если флаг активен
+            if show_hitbox:
+                ship.draw_hitbox(screen)
 
             # Отображаем корабль, если он не мерцает
             if not flash_active:
@@ -554,8 +619,10 @@ def level_one():
                 bullet.update()
                 screen.blit(bullet.image, bullet.rect.topleft)
 
-            pygame.draw.rect(screen, '#4B0082', (410, 0, 200, 70))
-            pygame.draw.rect(screen, '#D3D3D3', (410, 0, 200, 70), 3)
+            frame_image = pygame.image.load('data/image/sprites/hp_window.png')
+            stretched_image = pygame.transform.scale(frame_image,
+                                                     (600 - 390, 80))
+            screen.blit(stretched_image, (390, 0))
 
             interface.draw_hp_bar(screen)
             pygame.display.flip()  # Обновляем дисплей
