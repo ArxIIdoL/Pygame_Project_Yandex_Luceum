@@ -1,14 +1,18 @@
 import os
 import pickle
-import sys
 import random
+import sys
 
 import pygame
 import pygame_gui
 
 # Константы
+pygame.mixer.init()
 SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL = 600, 900
 FPS, CLOCK, SCROLL_SPEED = 60, pygame.time.Clock(), 0.4
+SOUNDS_CONFIRMING_1, SOUNDS_CONFIRMING_2 = pygame.mixer.Sound("data/music/sounds_confirming_1.wav"), pygame.mixer.Sound(
+    "data/music/sounds_confirming_2.wav")
+SOUNDS_CONFIRMING_1.set_volume(0.12), SOUNDS_CONFIRMING_2.set_volume(0.12)
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -55,8 +59,7 @@ class Ship:
 
         self.sound_of_shot = pygame.mixer.Sound("data/music/shot.wav")
         self.sound_of_shot.set_volume(0.12)
-        self.bullets = []
-        self.last_shot_time = 0
+        self.bullets, self.last_shot_time = [], 0
         self.shoot_delay = 175
 
         # Параметры для эффекта вылета
@@ -138,16 +141,37 @@ class Ship:
         pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
 
 
-class Asteroid:
+class Asteroid(AnimatedSprite):
     def __init__(self):
-        self.size = 30
-        self.x = random.randint(0, 570)
+        self.image = load_image('sprites/asteroids.png')
+        self.size = self.image.get_width()
+        # self.size = 30
+        self.x = random.randint(0, SCREEN_WIDTH_LEVEL - self.size)
         self.y = random.randint(-30, 0)
-        self.speed = random.randint(5, 10)
+
+        # Генерируем случайные скорости по осям X и Y
+        self.speed_x = random.uniform(-3, 3)  # Скорость по оси X (может быть отрицательной для движения влево)
+        self.speed_y = random.uniform(3, 7)  # Скорость по оси Y (положительная для движения вниз)
         self.collision_occurred = False
 
+        self.rect = self.image.get_rect(topleft=(self.x, self.y))
+
     def move(self):
-        self.y += self.speed
+        self.x += self.speed_x
+        self.y += self.speed_y
+        self.rect.topleft = (self.x, self.y)
+
+        if self.x < 0 or self.x > SCREEN_WIDTH_LEVEL - self.size:
+            self.speed_x = -self.speed_x  # Меняем направление при столкновении со стенкой
+
+        if self.y > SCREEN_HEIGHT_LEVEL:  # Если астероид вышел за нижнюю границу экрана
+            self.y = random.randint(-30, 0)  # Возвращаем его на верхнюю границу с новой случайной Y
+            self.x = random.randint(0, SCREEN_WIDTH_LEVEL - self.size)  # Новая случайная X
+            self.speed_y = random.uniform(3, 7)  # Обновляем скорость по Y
+            self.speed_x = random.uniform(-3, 3)  # Обновляем скорость по X
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect.topleft)  # Отображаем спрайт на экране
 
 
 def check_collision(ship, asteroids):
@@ -196,15 +220,32 @@ class BackgroundManager:
             self.screen.blit(self.backgrounds[i], (0, self.y_offsets[i]))
 
 
+class SpaceObject(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        images = []
+        self.image = random.choice()
+        self.rect = self.image.get_rect(center=(pos_x, pos_y))
+        self.speed_x, self.speed_y = random.randint(5, 15), random.randint(5, 20)
+
+    def update(self):
+        self.rect.x += self.speed_x
+        self.rect.y += self.speed_y
+
+        # Проверка границ экрана
+        if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
+            self.kill()
+        if self.rect.bottom < 0 or self.rect.top > SCREEN_HEIGHT:
+            self.kill()
+
+
 class Interface(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.full_heart = load_image('sprites/full heart.png')
         self.empty_heart = load_image('sprites/empty heart.png')
-        self.x_start = SCREEN_WIDTH_LEVEL - 180
-        self.y_start = 19
-        self.hp_bar = [True] * 3  # Список для состояния сердечек (полное или пустое)
-        self.dead = 0
+        self.x_start, self.y_start = SCREEN_WIDTH_LEVEL - 180, 19
+        self.hp_bar, self.dead = [True] * 3, 0  # Список для состояния сердечек (полное или пустое)
 
         # Изменяем размер сердечек
         self.full_heart = pygame.transform.scale(self.full_heart, (45, 45))
@@ -287,7 +328,6 @@ def terminate():
 
 def input_window(screen_size):
     global nickname
-    global FPS
     pygame.init()
     screen = pygame.display.set_mode(screen_size)
     manager = pygame_gui.UIManager(screen_size)
@@ -300,7 +340,6 @@ def input_window(screen_size):
     pygame.display.set_caption('Entering name')
     fon = pygame.transform.scale(load_image('backgrounds image/first_screen_background.jpg'), screen_size)
     screen.blit(fon, (0, 0))
-    # screen.fill(pygame.Color("#00008B"))
     # Название игры
     font = load_font(12)
     string_rendered = font.render("Введите имя", True, pygame.Color("White"))
@@ -317,22 +356,26 @@ def input_window(screen_size):
         relative_rect=pygame.Rect(((screen_size[0] // 2) - 110, 120), (210, 30))
     )
     nice_nickname = False
-
     while True:
         time_delta = clock.tick(60) / 1000.0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
 
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
+                level_one()
+
             if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
                 user_name_text = event.text
                 if not (user_name_text.replace('', ' ') == '') and (
                         3 <= len(user_name_text) <= 12) and user_name_text.isalpha():
+                    SOUNDS_CONFIRMING_2.play()
                     nickname, nice_nickname = user_name_text, True
                 else:
                     nickname, nice_nickname = '', False
             elif event.type == pygame_gui.UI_BUTTON_PRESSED and event.ui_element == enter_btn:
                 if nice_nickname and bool(nickname):
+                    SOUNDS_CONFIRMING_1.play()
                     start_screen((600, 400))
             manager.process_events(event)
         manager.update(time_delta)
@@ -347,11 +390,11 @@ def start_screen(screen_size):
     print(nickname)
     pygame.init()
     screen = pygame.display.set_mode(screen_size)
-    # Музыка
-    pygame.mixer.init()
-    pygame.mixer.music.load(load_music('start music background.mp3'))
-    pygame.mixer.music.set_volume(0.15)
-    pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
+    # # Музыка
+    # pygame.mixer.init()
+    # pygame.mixer.music.load(load_music('start music background.mp3'))
+    # pygame.mixer.music.set_volume(0.15)
+    # pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
     pygame.display.set_icon(load_image('icon.jpg'))
     pygame.display.set_caption('AstroBlast')
     fon = pygame.transform.scale(load_image('backgrounds image/first_screen_background.jpg'), screen_size)
@@ -384,59 +427,67 @@ def start_screen(screen_size):
 
 def menu():
     global music_volume
+
     # Размеры окна меню
-    menu_widht, menu_height = 400, 300
+    menu_width, menu_height = 400, 300
+
     # Создание окна меню
-    screen_menu = pygame.display.set_mode((menu_widht, menu_height))
+    screen_menu = pygame.display.set_mode((menu_width, menu_height))
     pygame.display.set_caption("Menu")
-    # Фон меню
-    background = pygame.Surface(screen_menu.get_size())
-    background.fill((0, 0, 0))
+
+    # Инициализация менеджера интерфейсов
+    manager = pygame_gui.UIManager((menu_width, menu_height))
+
+    # Создаем ползунок для регулировки громкости музыки
+    slider_rect = pygame.Rect((50, 150), (300, 30))  # Позиция и размер ползунка
+    music_volume_slider = pygame_gui.elements.UIHorizontalSlider(
+        relative_rect=slider_rect,
+        start_value=music_volume,  # Начальное значение
+        value_range=(0, 100),
+        manager=manager
+    )
+
     # Шрифты
     font = pygame.font.Font(None, 36)
     # Надписи
     music_text = font.render("Music Volume:", True, (255, 255, 255))
 
-    # sound_text = font.render("Sound Volume:", True, (255, 255, 255))
-
-    # Ползунки для регулировки громкости
-    def draw_slider(surf, x, y, w, h, color, value):
-        pygame.draw.rect(surf, color, (x, y, w, h))
-        handle_x = int(x + (w - 10) * value / 100)
-        pygame.draw.rect(surf, (255, 0, 0), (handle_x, y, 10, h))
-
+    # Основной цикл программы
+    clock = pygame.time.Clock()
     running = True
+
     while running:
+        time_delta = clock.tick(60) / 1000.0
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                if event.button == 1:  # Левая кнопка мыши
-                    if 20 <= mouse_pos[0] <= 380 and 120 <= mouse_pos[1] <= 140:
-                        music_volume = int((mouse_pos[0] - 20) / 360 * 100)
-                        pygame.mixer.music.set_volume(music_volume / 100)
-        # Очистка экрана
-        screen_menu.blit(background, (0, 0))
-        # Отображение текста
-        screen_menu.blit(music_text, (20, 80))
-        # Рисование ползунков
-        draw_slider(screen_menu, 20, 120, 360, 20, (255, 255, 255), music_volume)
-        # Обновление дисплея
-        pygame.display.flip()
+
+            if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                if event.ui_element == music_volume_slider:
+                    music_volume = round(event.value)  # Обновляем глобальную переменную
+                    pygame.mixer.music.set_volume(music_volume / 100)  # Устанавливаем уровень громкости
+            manager.process_events(event)
+        manager.update(time_delta)
+        screen_menu.fill((0, 0, 0))  # Заливаем экран черным цветом
+        screen_menu.blit(music_text, (110, 80))
+        manager.draw_ui(screen_menu)  # Отображаем элементы интерфейса
+        pygame.display.update()
     # Возвращаемся к основному окну игры
+    SOUNDS_CONFIRMING_1.play()
     pygame.display.set_caption("AstroBlast")
     pygame.display.set_mode((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
 
 
-def check_bullet_collision(bullets, asteroids):
+def check_bullet_collision(bullets, asteroids, explosions):
     for bullet in bullets:
         for asteroid in asteroids:
             if (bullet.rect.x < asteroid.x + asteroid.size and
                     bullet.rect.x + bullet.rect.width > asteroid.x and
                     bullet.rect.y < asteroid.y + asteroid.size and
                     bullet.rect.y + bullet.rect.height > asteroid.y):
-                asteroids.remove(asteroid)  # Удаляем квадрат
+                explosions.append(Explosion(asteroid.rect.centerx, asteroid.rect.centery))
+                asteroids.remove(asteroid)  # Удаляем астероид
                 bullets.remove(bullet)  # Удаляем пулю
                 return  # Выходим из функции после первого столкновения
 
@@ -460,6 +511,11 @@ class Explosion:
         self.rect = self.sprites[0].get_rect(center=(x, y))  # Позиция взрыва
         self.active = True  # Флаг активности анимации
 
+        # Загрузка звука взрыва
+        self.explosion_sound = pygame.mixer.Sound("data/music/explosion.wav")
+        self.explosion_sound.set_volume(0.1)  # Громкость звука
+        self.explosion_sound.play()  # Воспроизводим звук взрыва при создании объекта
+
     def update(self):
         if self.active:
             current_time = pygame.time.get_ticks()
@@ -478,21 +534,19 @@ class Explosion:
 
 # Внутри функции level_one()
 def level_one():
-    asteroids = []
-    interface = Interface()
     global CLOCK
     global FPS
-    pause = False
-    explosions = []  # Список для хранения активных взрывов
-    flash_time = 0
-    flash_active = False
+    global music_volume
+    asteroids = []
+    interface = Interface()
+    pause, explosions = False, []  # Список для хранения активных взрывов
+    flash_time, flash_active = 0, False
     ship_flash_duration = 1000  # Длительность мерцания в мс
     show_hitbox = False  # Флаг для отображения хитбокса
 
-    # Инициализируем Pygame
+    # Инициализируем Pygame и музыку
     pygame.init()
     pygame.mixer.music.load(load_music('music in lvl 1.mp3'))
-    pygame.mixer.music.set_volume(0.15)
     pygame.mixer.music.play(loops=-1, fade_ms=1 * 1000)
 
     # Создаем окно
@@ -555,14 +609,15 @@ def level_one():
                 if check_collision(ship, [asteroid]) and not asteroid.collision_occurred:
                     asteroid.collision_occurred = True
                     interface.change_health()
-                    if interface.check_health():
-                        print("Game Over! Restarting level...")
-                        level_one()
 
                     # Убираем астероид и создаем взрыв
                     explosion = Explosion(ship.rect.centerx, ship.rect.centery)  # Позиция взрыва - позиция корабля
                     explosions.append(explosion)  # Добавляем взрыв в список
                     asteroids.remove(asteroid)  # Удаляем астероид
+
+                    if interface.check_health():
+                        print("Game Over! Restarting level...")
+                        level_one()
 
                     # Запускаем мерцание
                     flash_active = True
@@ -588,10 +643,10 @@ def level_one():
             # Обновляем позицию астероидов
             for asteroid in asteroids:
                 asteroid.move()
-                pygame.draw.rect(screen, (255, 0, 0), (asteroid.x, asteroid.y, asteroid.size, asteroid.size))
+                asteroid.draw(screen)
 
             # Добавляем новые астероиды
-            if pygame.time.get_ticks() % 15 == 0:
+            if pygame.time.get_ticks() % 30 == 0:
                 asteroids.append(Asteroid())
 
             asteroids = [asteroid for asteroid in asteroids if asteroid.y < 900]
@@ -603,7 +658,7 @@ def level_one():
                 if bullet.rect.y < -12:
                     ship.bullets.remove(bullet)
 
-            check_bullet_collision(ship.bullets, asteroids)
+            check_bullet_collision(ship.bullets, asteroids, explosions)
 
             ship.update()
             # Отображаем хитбокс, если флаг активен
@@ -620,10 +675,8 @@ def level_one():
                 screen.blit(bullet.image, bullet.rect.topleft)
 
             frame_image = pygame.image.load('data/image/sprites/hp_window.png')
-            stretched_image = pygame.transform.scale(frame_image,
-                                                     (600 - 390, 80))
+            stretched_image = pygame.transform.scale(frame_image, (600 - 390, 80))
             screen.blit(stretched_image, (390, 0))
-
             interface.draw_hp_bar(screen)
             pygame.display.flip()  # Обновляем дисплей
         CLOCK.tick(FPS)
@@ -634,6 +687,6 @@ def level_two():
 
 
 if __name__ == '__main__':
-    music_volume, nickname = 15, ''
+    music_volume, nickname = 19, ''
     input_window((400, 300))
     # start_screen((600, 400))
