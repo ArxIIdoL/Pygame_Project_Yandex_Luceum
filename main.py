@@ -15,8 +15,7 @@ SOUNDS_CONFIRMING_1, SOUNDS_CONFIRMING_2 = pygame.mixer.Sound(
     "data/sounds/sounds_confirming_2.wav")
 BONUSES = {'Bonus': ['more bullets', 'more hp', 'more speed'],
            'Anti bonus': ['attack of masochism', 'dying moment', 'irritated eye'],
-           'Super bonus': ['Art of Asclepius', 'neon bullets'],
-           'Star': ['little star']}
+           'Super bonus': ['Art of Asclepius', 'neon bullets']}
 SCORED = 0
 SOUNDS_CONFIRMING_1.set_volume(0.12), SOUNDS_CONFIRMING_2.set_volume(0.12)
 
@@ -269,10 +268,7 @@ class Bonus(pygame.sprite.Sprite):
         self.start_time = pygame.time.get_ticks()
 
         # Звук для подбора бонуса
-        if self.bonus_type == 'Star':
-            self.pickup_sound = pygame.mixer.Sound(f'data/sounds/Bonus.wav')
-        else:
-            self.pickup_sound = pygame.mixer.Sound(f'data/sounds/{self.bonus_type}.wav')
+        self.pickup_sound = pygame.mixer.Sound(f'data/sounds/{self.bonus_type}.wav')
         self.pickup_sound.set_volume(0.5)
 
         # Звук для исчезновения бонуса
