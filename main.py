@@ -417,7 +417,7 @@ class Interface(pygame.sprite.Sprite):
                 self.star_bar[self.stars] = True  # Устанавливаем звезду как полную
 
 
-def load_image(name, colorkey=None):
+def load_image(name):
     fullname = os.path.join('data/image', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
