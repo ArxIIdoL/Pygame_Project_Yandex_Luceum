@@ -2,6 +2,7 @@ import os
 import pickle
 import random
 import sys
+import csv
 
 import pygame
 import pygame_gui
@@ -459,15 +460,54 @@ def load_game_state(level_function):
         pass  # Игры нет, ничего не делаем
 
 
+def write_results_to_csv(nickname, max_score_lvl1, max_score_lvl2, filename='data/results.csv'):
+    # Проверка, существует ли файл
+    existing_results = {}
+    if os.path.isfile(filename):
+        with open(filename, mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                existing_results[row['nickname']] = {
+                    'MAX_SCORED_IN_LVL1': int(row['MAX_SCORED_IN_LVL1']),
+                    'MAX_SCORED_IN_LVL2': int(row['MAX_SCORED_IN_LVL2']),
+                }
+
+    # Проверяем, есть ли уже запись для данного ника
+    if nickname in existing_results:
+        # Обновляем максимальные очки, если новые больше
+        if max_score_lvl1 > existing_results[nickname]['MAX_SCORED_IN_LVL1']:
+            existing_results[nickname]['MAX_SCORED_IN_LVL1'] = max_score_lvl1
+        if max_score_lvl2 > existing_results[nickname]['MAX_SCORED_IN_LVL2']:
+            existing_results[nickname]['MAX_SCORED_IN_LVL2'] = max_score_lvl2
+    else:
+        # Если ника нет, добавляем нового игрока
+        existing_results[nickname] = {
+            'MAX_SCORED_IN_LVL1': max_score_lvl1,
+            'MAX_SCORED_IN_LVL2': max_score_lvl2,
+        }
+
+    # Записываем обновленные результаты обратно в файл
+    with open(filename, mode='w', newline='') as file:
+        fieldnames = ['nickname', 'MAX_SCORED_IN_LVL1', 'MAX_SCORED_IN_LVL2']
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()  # Записываем заголовки
+        for nick, scores in existing_results.items():
+            writer.writerow({
+                'nickname': nick,
+                'MAX_SCORED_IN_LVL1': scores['MAX_SCORED_IN_LVL1'],
+                'MAX_SCORED_IN_LVL2': scores['MAX_SCORED_IN_LVL2'],
+            })
+
+
 def terminate():
+    global nickname
     pygame.quit()
-    # with open('data/result.txt', 'w') as output_file:
-    #     output_file.write(f"{MAX_SCORED}\n")
+    write_results_to_csv(nickname, MAX_SCORED_IN_LVL1, MAX_SCORED_IN_LVL2)
     sys.exit()
 
 
 def input_window(screen_size):
-    global nickname
+    global nickname, MAX_SCORED_IN_LVL1, MAX_SCORED_IN_LVL2
     pygame.init()
     screen = pygame.display.set_mode(screen_size)
     manager = pygame_gui.UIManager(screen_size)
@@ -517,6 +557,12 @@ def input_window(screen_size):
                     nickname, nice_nickname = '', False
             elif event.type == pygame_gui.UI_BUTTON_PRESSED and event.ui_element == enter_btn:
                 if nice_nickname and bool(nickname):
+                    with open('data/results.csv', 'r', newline='') as csvfile:
+                        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+                        for row in reader:
+                            if row[0] == nickname:
+                                MAX_SCORED_IN_LVL1 = int(row[1])
+                                MAX_SCORED_IN_LVL2 = int(row[2])
                     SOUNDS_CONFIRMING_1.play()
                     start_screen((600, 400))
             manager.process_events(event)
@@ -995,6 +1041,21 @@ def level_two():
         CLOCK.tick(FPS)
 
 
+def read_best_scores_from_csv(filename='results.csv'):
+    best_scores = {'MAX_SCORED_IN_LVL1': 0, 'MAX_SCORED_IN_LVL2': 0}
+
+    if os.path.isfile(filename):
+        with open(filename, mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                if int(row['MAX_SCORED_IN_LVL1']) > best_scores['MAX_SCORED_IN_LVL1']:
+                    best_scores['MAX_SCORED_IN_LVL1'] = int(row['MAX_SCORED_IN_LVL1'])
+                if int(row['MAX_SCORED_IN_LVL2']) > best_scores['MAX_SCORED_IN_LVL2']:
+                    best_scores['MAX_SCORED_IN_LVL2'] = int(row['MAX_SCORED_IN_LVL2'])
+
+    return best_scores
+
+
 def game_over(level=1):
     global FPS, SCORED, MAX_SCORED_IN_LVL1, MAX_SCORED_IN_LVL2
     pygame.init()
@@ -1016,7 +1077,7 @@ def game_over(level=1):
     screen.blit(string_rendered, intro_rect), screen.blit(stretched_image, (120, 45))
     if SCORED >= MAX_SCORED_IN_LVL1 and level == 1:
         MAX_SCORED_IN_LVL1 = SCORED
-    elif SCORED >= MAX_SCORED_IN_LVL1 and level == 1:
+    elif SCORED >= MAX_SCORED_IN_LVL2 and level == 2:
         MAX_SCORED_IN_LVL2 = SCORED
     font = load_font(15)
     for text, y in zip((f"Лучший результат: {MAX_SCORED_IN_LVL1 if level == 1 else MAX_SCORED_IN_LVL2}",

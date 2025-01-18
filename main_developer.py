@@ -461,7 +461,7 @@ def load_game_state(level_function):
 
 def terminate():
     pygame.quit()
-    # with open('data/result.txt', 'w') as output_file:
+    # with open('data/result.csv', 'w') as output_file:
     #     output_file.write(f"{MAX_SCORED}\n")
     sys.exit()
 
