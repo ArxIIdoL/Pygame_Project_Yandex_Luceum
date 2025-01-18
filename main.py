@@ -314,7 +314,7 @@ class Bonus(pygame.sprite.Sprite):
                 pass
             elif self.bonus_name == 'more speed':
                 global ship_speed
-                ship_speed = 10
+                ship_speed = 4.5
         elif self.bonus_type == 'Anti bonus':
             if self.bonus_name == 'attack of masochism':
                 interface.change_star(False)
@@ -655,6 +655,7 @@ def level_one():
     ship = Ship(ship_x, 900)  # Начинаем из нижней части экрана
 
     last_event_time = pygame.time.get_ticks()  # Время первого запуска
+    time_application = pygame.time.get_ticks()
     # Основной игровой цикл
     while True:
         current_time = pygame.time.get_ticks()
@@ -734,7 +735,7 @@ def level_one():
             # Добавляем новые астероиды
             if current_time % 45 == 0:
                 asteroids.append(Asteroid())
-            if (current_time - last_event_time) >= 20000:
+            if (current_time - last_event_time) >= 20000:  # 20000
                 last_event_time = current_time
                 new_bonus = Bonus((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
                 bonuses.add(new_bonus)
@@ -771,6 +772,11 @@ def level_one():
             collisions = pygame.sprite.spritecollide(ship, bonuses, True)
             for bonus in collisions:
                 bonus.apply_effect(interface)
+                time_application = current_time
+
+            if (current_time - time_application) / 1000 >= 4:
+                for bonus in bonuses:
+                    bonus.disable_all_effects()
 
             # Отображаем все спрайты
             bonuses.draw(screen)
