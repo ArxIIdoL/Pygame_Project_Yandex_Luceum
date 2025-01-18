@@ -3,6 +3,7 @@ import pickle
 import random
 import sys
 import csv
+import math
 
 import pygame
 import pygame_gui
@@ -74,9 +75,9 @@ class Ship(pygame.sprite.Sprite):
         self.target_y = 700  # Конечная позиция корабля (где он должен остановиться)
 
         # Устанавливаем начальную позицию
-        self.rect.y = 900  # Начинаем из нижней части экрана
+        self.rect.y = 900
 
-        self.is_turning = False  # Флаг для отслеживания поворота
+        self.is_turning = False
         self.turn_direction = None  # Направление поворота (None, 'left' или 'right')
 
     def move(self, dx, dy):
@@ -85,25 +86,6 @@ class Ship(pygame.sprite.Sprite):
         self.rect.x = max(0, min(self.rect.x, 600 - self.rect.width))
         self.rect.y = max(0, min(self.rect.y, 900 - self.rect.height))
 
-    ########################Одиночный выстрел справа####################################################################
-    def shoot1(self, current_time):
-        if current_time - self.last_shot_time > self.shoot_delay:
-            self.sound_of_shot.play()
-            bullet = Bullet(self.rect.centerx, self.rect.top)
-            self.bullets.append(bullet)
-            self.last_shot_time = current_time
-
-    ########################С обоих сторон########################################################################
-    def shoot2(self, current_time):
-        if current_time - self.last_shot_time > self.shoot_delay:
-            self.sound_of_shot.play()
-            bullet = Bullet(self.rect.centerx - 30, self.rect.top)
-            self.bullets.append(bullet)
-            bullet = Bullet(self.rect.centerx, self.rect.top)
-            self.bullets.append(bullet)
-            self.last_shot_time = current_time
-
-    ########################Одиночный из середины#######################################################################
     def shoot(self, current_time):
         if is_neon_bullets:
             if current_time - self.last_shot_time > self.shoot_delay:
@@ -135,12 +117,12 @@ class Ship(pygame.sprite.Sprite):
                 self.last_shot_time = current_time
 
     def turn(self, direction):
-        self.is_turning = True  # Устанавливаем флаг поворота
-        self.turn_direction = direction  # Запоминаем направление поворота
+        self.is_turning = True
+        self.turn_direction = direction
 
     def reset_turn(self):
-        self.is_turning = False  # Сбрасываем флаг поворота
-        self.turn_direction = None  # Сбрасываем направление поворота
+        self.is_turning = False
+        self.turn_direction = None
 
     def update(self):
         if self.is_flying_in:
@@ -157,13 +139,12 @@ class Ship(pygame.sprite.Sprite):
             elif self.turn_direction == 'right':
                 self.image = self.image_turn_right
         else:
-            self.image = self.image_straight  # Возвращаем основное изображение
+            self.image = self.image_straight
 
         # Обновляем rect для текущего изображения
-        self.rect = self.image.get_rect(center=self.rect.center)  # Сохраняем центр для правильной позиции
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     def draw_hitbox(self, screen):
-        # Рисуем хитбокс (прямоугольник)
         pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
 
 
@@ -171,18 +152,19 @@ class Asteroid(AnimatedSprite):
     def __init__(self, level):
         self.image = load_image('sprites/asteroids_1.png') if level == 1 else load_image('sprites/asteroids_2.png')
         self.size = self.image.get_width()
-        # self.size = 30
         self.x = random.randint(0, SCREEN_WIDTH_LEVEL - self.size)
         self.y = random.randint(-30, 0)
 
         # Генерируем случайные скорости по осям X и Y
-        self.speed_x = random.uniform(-3, 3)  # Скорость по оси X (может быть отрицательной для движения влево)
-        self.speed_y = random.uniform(3, 7)  # Скорость по оси Y (положительная для движения вниз)
+        self.speed_x = random.uniform(-3, 3)
+        self.speed_y = random.uniform(3, 7)
         self.collision_occurred = False
 
         self.rect = self.image.get_rect(topleft=(self.x, self.y))
+        self.time = 0
 
     def move(self):
+
         self.x += self.speed_x
         self.y += self.speed_y
         self.rect.topleft = (self.x, self.y)
@@ -193,8 +175,8 @@ class Asteroid(AnimatedSprite):
         if self.y > SCREEN_HEIGHT_LEVEL:  # Если астероид вышел за нижнюю границу экрана
             self.y = random.randint(-30, 0)  # Возвращаем его на верхнюю границу с новой случайной Y
             self.x = random.randint(0, SCREEN_WIDTH_LEVEL - self.size)  # Новая случайная X
-            self.speed_y = random.uniform(3, 7)  # Обновляем скорость по Y
-            self.speed_x = random.uniform(-3, 3)  # Обновляем скорость по X
+            self.speed_y = random.uniform(3, 7)
+            self.speed_x = random.uniform(-3, 3)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect.topleft)  # Отображаем спрайт на экране
@@ -222,7 +204,6 @@ class Bullet(AnimatedSprite):
 
 class Explosion:
     def __init__(self, x, y, num):
-        # Загружаем изображение с 8 спрайтами
         sheet = load_image(f"sprites/boom{num}.png")
         frame_width = sheet.get_width() // 8  # Предполагается, что 8 спрайтов в одной строке
         frame_height = sheet.get_height()
@@ -502,7 +483,8 @@ def write_results_to_csv(nickname, max_score_lvl1, max_score_lvl2, filename='dat
 def terminate():
     global nickname
     pygame.quit()
-    write_results_to_csv(nickname, MAX_SCORED_IN_LVL1, MAX_SCORED_IN_LVL2)
+    if len(nickname) >= 3:
+        write_results_to_csv(nickname, MAX_SCORED_IN_LVL1, MAX_SCORED_IN_LVL2)
     sys.exit()
 
 
@@ -557,6 +539,7 @@ def input_window(screen_size):
                     nickname, nice_nickname = '', False
             elif event.type == pygame_gui.UI_BUTTON_PRESSED and event.ui_element == enter_btn:
                 if nice_nickname and bool(nickname):
+                    # Обновление констант максимальных очков для игрока при вводе ника из .csv файла
                     with open('data/results.csv', 'r', newline='') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
                         for row in reader:
