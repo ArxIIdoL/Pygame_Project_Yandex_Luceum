@@ -1,14 +1,23 @@
 import os
 import pickle
-import sys
 import random
+import sys
 
 import pygame
 import pygame_gui
 
 # Константы
+pygame.mixer.init()
 SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL = 600, 900
 FPS, CLOCK, SCROLL_SPEED = 60, pygame.time.Clock(), 0.4
+SOUNDS_CONFIRMING_1, SOUNDS_CONFIRMING_2 = pygame.mixer.Sound(
+    "data/sounds/sounds_confirming_1.wav"), pygame.mixer.Sound(
+    "data/sounds/sounds_confirming_2.wav")
+BONUSES = {'Bonus': ['more bullets', 'more hp', 'more speed'],
+           'Anti bonus': ['attack of masochism', 'dying moment', 'irritated eye'],
+           'Super bonus': ['Art of Asclepius', 'neon bullets']}
+SCORED = 0
+SOUNDS_CONFIRMING_1.set_volume(0.12), SOUNDS_CONFIRMING_2.set_volume(0.12)
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -34,29 +43,28 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
 
 
-class Ship:
+class Ship(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        self.image = pygame.image.load(
-            "data/image/sprites/spaceship straight.png").convert_alpha()  # Основное изображение
-        self.image_turn_left = pygame.image.load(
-            "data/image/sprites/spaceship left.png").convert_alpha()  # Изображение для поворота налево
-        self.image_turn_right = pygame.image.load(
-            "data/image/sprites/spaceship right.png").convert_alpha()  # Изображение для поворота направо
+        super().__init__()
+        self.image_straight = load_image("sprites/spaceship straight.png")  # Основное изображение
+        self.image_turn_left = load_image("sprites/spaceship left.png")  # Изображение для поворота налево
+        self.image_turn_right = load_image("sprites/spaceship right.png")  # Изображение для поворота направо
 
         # Растягиваем изображение корабля
-        self.image = pygame.transform.scale(self.image, (
-            self.image.get_width() * 1.5, self.image.get_height() * 1.5))
+        self.image_straight = pygame.transform.scale(self.image_straight, (
+            self.image_straight.get_width() * 1.5, self.image_straight.get_height() * 1.5))
         self.image_turn_left = pygame.transform.scale(self.image_turn_left, (
             self.image_turn_left.get_width() * 1.5, self.image_turn_left.get_height() * 1.5))
         self.image_turn_right = pygame.transform.scale(self.image_turn_right, (
             self.image_turn_right.get_width() * 1.5, self.image_turn_right.get_height() * 1.5))
 
+        self.image = self.image_straight
+
         self.rect = self.image.get_rect(center=(x, y))
 
-        self.sound_of_shot = pygame.mixer.Sound("data/music/shot.wav")
+        self.sound_of_shot = pygame.mixer.Sound("data/sounds/shot.wav")
         self.sound_of_shot.set_volume(0.12)
-        self.bullets = []
-        self.last_shot_time = 0
+        self.bullets, self.last_shot_time = [], 0
         self.shoot_delay = 175
 
         # Параметры для эффекта вылета
@@ -96,11 +104,20 @@ class Ship:
 
     ########################Одиночный из середины#######################################################################
     def shoot(self, current_time):
-        if current_time - self.last_shot_time > self.shoot_delay:
-            self.sound_of_shot.play()
-            bullet = Bullet(self.rect.centerx - 18, self.rect.top)
-            self.bullets.append(bullet)
-            self.last_shot_time = current_time
+        if is_more_bullets:
+            if current_time - self.last_shot_time > self.shoot_delay:
+                self.sound_of_shot.play()
+                bullet = Bullet(self.rect.centerx - 30, self.rect.top)
+                self.bullets.append(bullet)
+                bullet = Bullet(self.rect.centerx, self.rect.top)
+                self.bullets.append(bullet)
+                self.last_shot_time = current_time
+        else:
+            if current_time - self.last_shot_time > self.shoot_delay:
+                self.sound_of_shot.play()
+                bullet = Bullet(self.rect.centerx - 18, self.rect.top)
+                self.bullets.append(bullet)
+                self.last_shot_time = current_time
 
     def turn(self, direction):
         self.is_turning = True  # Устанавливаем флаг поворота
@@ -125,10 +142,7 @@ class Ship:
             elif self.turn_direction == 'right':
                 self.image = self.image_turn_right
         else:
-            self.image = pygame.transform.scale(pygame.image.load(
-                "data/image/sprites/spaceship straight.png").convert_alpha(), (
-                                                    self.image.get_width(),
-                                                    self.image.get_height()))  # Возвращаем основное изображение
+            self.image = self.image_straight  # Возвращаем основное изображение
 
         # Обновляем rect для текущего изображения
         self.rect = self.image.get_rect(center=self.rect.center)  # Сохраняем центр для правильной позиции
@@ -138,32 +152,47 @@ class Ship:
         pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
 
 
-class Asteroid:
+class Asteroid(AnimatedSprite):
     def __init__(self):
-        self.size = 30
-        self.x = random.randint(0, 570)
+        self.image = load_image('sprites/asteroids.png')
+        self.size = self.image.get_width()
+        # self.size = 30
+        self.x = random.randint(0, SCREEN_WIDTH_LEVEL - self.size)
         self.y = random.randint(-30, 0)
-        self.speed = random.randint(5, 10)
+
+        # Генерируем случайные скорости по осям X и Y
+        self.speed_x = random.uniform(-3, 3)  # Скорость по оси X (может быть отрицательной для движения влево)
+        self.speed_y = random.uniform(3, 7)  # Скорость по оси Y (положительная для движения вниз)
         self.collision_occurred = False
 
+        self.rect = self.image.get_rect(topleft=(self.x, self.y))
+
     def move(self):
-        self.y += self.speed
+        self.x += self.speed_x
+        self.y += self.speed_y
+        self.rect.topleft = (self.x, self.y)
 
+        if self.x < 0 or self.x > SCREEN_WIDTH_LEVEL - self.size:
+            self.speed_x = -self.speed_x  # Меняем направление при столкновении со стенкой
 
-def check_collision(ship, asteroids):
-    for asteroid in asteroids:
-        if (ship.rect.x < asteroid.x + asteroid.size and
-                ship.rect.x + ship.rect.width > asteroid.x and
-                ship.rect.y < asteroid.y + asteroid.size and
-                ship.rect.y + ship.rect.height > asteroid.y):
-            return True  # Возвращаем True при столкновении
-    return False
+        if self.y > SCREEN_HEIGHT_LEVEL:  # Если астероид вышел за нижнюю границу экрана
+            self.y = random.randint(-30, 0)  # Возвращаем его на верхнюю границу с новой случайной Y
+            self.x = random.randint(0, SCREEN_WIDTH_LEVEL - self.size)  # Новая случайная X
+            self.speed_y = random.uniform(3, 7)  # Обновляем скорость по Y
+            self.speed_x = random.uniform(-3, 3)  # Обновляем скорость по X
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect.topleft)  # Отображаем спрайт на экране
 
 
 class Bullet(AnimatedSprite):
     def __init__(self, x, y):
-        sheet = pygame.transform.scale(load_image('sprites/bullet_sprite.png'), (100, 7))
-        super().__init__(sheet, 3, 1, x, y)
+        if is_neon_bullets:
+            sheet = pygame.transform.scale(load_image('sprites/neon bullets.png'), (30, 7))
+            super().__init__(sheet, 1, 1, x, y)
+        else:
+            sheet = pygame.transform.scale(load_image('sprites/bullet_sprite.png'), (100, 7))
+            super().__init__(sheet, 3, 1, x, y)
         self.bullet_speed = 3.5
 
         # Поворачиваем каждый кадр на 90 градусов влево
@@ -174,6 +203,46 @@ class Bullet(AnimatedSprite):
     def move(self):
         self.rect.y -= self.bullet_speed
         self.bullet_speed += 0.08
+
+
+class Explosion:
+    def __init__(self, x, y, num):
+        # Загружаем изображение с 8 спрайтами
+        sheet = load_image(f"sprites/boom{num}.png")
+        frame_width = sheet.get_width() // 8  # Предполагается, что 8 спрайтов в одной строке
+        frame_height = sheet.get_height()
+
+        # Вырезаем спрайты из изображения
+        self.sprites = []
+        for i in range(8):
+            frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
+            self.sprites.append(frame)
+
+        self.current_frame = 0  # Индекс текущего кадра
+        self.frame_duration = 100  # Продолжительность каждого кадра в мс
+        self.last_update = pygame.time.get_ticks()  # Время последнего обновления
+        self.rect = self.sprites[0].get_rect(center=(x, y))  # Позиция взрыва
+        self.active = True  # Флаг активности анимации
+
+        # Загрузка звука взрыва
+        self.explosion_sound = pygame.mixer.Sound("data/sounds/explosion.wav")
+        self.explosion_sound.set_volume(0.1)  # Громкость звука
+        self.explosion_sound.play()  # Воспроизводим звук взрыва при создании объекта
+
+    def update(self):
+        if self.active:
+            current_time = pygame.time.get_ticks()
+            # Проверяем, пора ли переходить к следующему кадру
+            if current_time - self.last_update >= self.frame_duration:
+                self.last_update = current_time
+                self.current_frame += 1
+                # Если анимация завершена, деактивируем её
+                if self.current_frame >= len(self.sprites):
+                    self.active = False
+
+    def draw(self, surface):
+        if self.active:
+            surface.blit(self.sprites[self.current_frame], self.rect.topleft)
 
 
 class BackgroundManager:
@@ -196,19 +265,111 @@ class BackgroundManager:
             self.screen.blit(self.backgrounds[i], (0, self.y_offsets[i]))
 
 
+class Bonus(pygame.sprite.Sprite):
+    def __init__(self, screen_size, bonus_types=('Super bonus',)):
+        super().__init__()
+        self.bonus_type = random.choice(bonus_types)
+        self.bonus_name = random.choice(BONUSES[self.bonus_type])
+        self.image = load_image(f'sprites/bonuses/{self.bonus_type} {self.bonus_name}.png')
+        # Случайная позиция на экране
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, screen_size[0] - self.rect.width)
+        self.rect.y = random.randint(0, screen_size[1] - self.rect.height)
+
+        # Время жизни бонуса (в миллисекундах)
+        self.lifetime = 10000  # Бонус исчезнет через 10 секунд
+        self.start_time = pygame.time.get_ticks()
+
+        # Звук для подбора бонуса
+        self.pickup_sound = pygame.mixer.Sound(f'data/sounds/{self.bonus_type}.wav')
+        self.pickup_sound.set_volume(0.5)
+
+        # Звук для исчезновения бонуса
+        self.vanish_sound = pygame.mixer.Sound('data/sounds/vanish_sound.wav')
+        self.vanish_sound.set_volume(0.5)
+
+        # Флаги для эффектов
+        self.should_merca, self.is_flashing = False, False
+        self.flash_timer, self.flash_start_time = 500, 0  # Мерцать каждые полсекунды
+
+    def update(self, current_time):
+        # Проверяем, истекло ли время жизни бонуса
+        if current_time - self.start_time >= self.lifetime:
+            self.vanish_sound.play()  # Воспроизводим звук перед исчезновением
+            self.kill()  # Уничтожаем бонус, если время вышло
+
+        # Проверяем, нужно ли начать мерцание
+        if current_time - self.start_time >= self.lifetime - 3000:  # Начнем мерцать за 3 секунды до конца
+            self.should_merca = True
+
+        # Реализуем мерцание
+        if self.should_merca:
+            if current_time - self.flash_start_time >= self.flash_timer:
+                self.is_flashing = not self.is_flashing
+                self.flash_start_time = current_time
+
+            if self.is_flashing:
+                self.image.set_alpha(128)  # Полупрозрачность
+            else:
+                self.image.set_alpha(255)  # Нормальная видимость
+
+    def apply_effect(self, interface):
+        global ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets
+        # Применяем эффект бонуса
+        if self.bonus_type == 'Bonus':
+            if self.bonus_name == 'more hp':
+                interface.change_health(False)
+            elif self.bonus_name == 'more bullets':
+                is_more_bullets = True
+            elif self.bonus_name == 'more speed':
+                global ship_speed
+                ship_speed = 4.5
+        elif self.bonus_type == 'Anti bonus':
+            if self.bonus_name == 'attack of masochism':
+                interface.change_star(False)
+                interface.change_health(True)
+            elif self.bonus_name == 'dying moment':
+                interface.change_health(True), interface.change_health(True)
+            elif self.bonus_name == 'irritated eye':
+                is_irritated_eye = True
+        elif self.bonus_type == 'Super bonus':
+            if self.bonus_name == 'Art of Asclepius':
+                interface.change_health(False), interface.change_health(False)
+            elif self.bonus_name == 'neon bullets':
+                is_neon_bullets = True
+        elif self.bonus_type == 'Star':
+            interface.change_star()
+
+        # Воспроизводим звук подбора
+        self.pickup_sound.play()
+
+    def disable_all_effects(self):
+        global ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets
+        ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets = 2.2, False, False, False
+
+
 class Interface(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.full_heart = load_image('sprites/full heart.png')
         self.empty_heart = load_image('sprites/empty heart.png')
-        self.x_start = SCREEN_WIDTH_LEVEL - 180
-        self.y_start = 19
-        self.hp_bar = [True] * 3  # Список для состояния сердечек (полное или пустое)
-        self.dead = 0
+        # self.full_star = load_image('sprites/full star.png')
+        # self.empty_star = load_image('sprites/empty star.png')
+        self.x_start, self.y_start = SCREEN_WIDTH_LEVEL - 180, 19
+        self.hp_bar, self.dead = [True] * 3, 0  # Список для состояния сердечек (полное или пустое)
+        self.star_bar, self.stars = [False] * 3, 0  # Список для состояния звёзд (полная или пустая)
 
         # Изменяем размер сердечек
         self.full_heart = pygame.transform.scale(self.full_heart, (45, 45))
         self.empty_heart = pygame.transform.scale(self.empty_heart, (45, 45))
+
+    def draw_score_bar(self, screen):
+        font = load_font(15)
+        scored_text = font.render(f"{SCORED}", True, pygame.Color('White'))
+        intro_rect = scored_text.get_rect()
+        intro_rect.top, intro_rect.x = SCREEN_HEIGHT_LEVEL - (15 + 20), SCREEN_WIDTH_LEVEL // (
+                (len(str(SCORED)) * 10) + 20)
+        screen.blit(scored_text, intro_rect)
 
     def draw_hp_bar(self, screen):
         for is_full, x in zip(self.hp_bar[::-1], range(self.x_start, SCREEN_WIDTH_LEVEL, 50)):
@@ -231,6 +392,16 @@ class Interface(pygame.sprite.Sprite):
                 self.dead -= 1
                 self.hp_bar[self.dead] = True  # Устанавливаем сердце как полное
 
+    def change_star(self, take=True):
+        if not take:
+            if self.stars < len(self.star_bar):  # Проверяем, не превышает ли star количество звёзд
+                self.star_bar[self.stars] = False  # Устанавливаем звезду как пустую
+                self.stars += 1
+        else:
+            if self.stars > 0:  # Проверяем, есть ли пустая звезда для пополнения
+                self.stars -= 1
+                self.star_bar[self.stars] = True  # Устанавливаем звезду как полную
+
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('data/image', name)
@@ -238,13 +409,7 @@ def load_image(name, colorkey=None):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
     image = pygame.image.load(fullname)
-    if colorkey is not None:
-        image = image.convert()
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
+    image = image.convert_alpha()
     return image
 
 
@@ -254,6 +419,15 @@ def load_music(type):
         print(f"Файл с музыкой '{fullname}' не найден")
         sys.exit()
     return fullname
+
+
+def load_font(size):
+    fullname = os.path.join('data', 'font/PressStart2P-Regular.ttf')
+    if not os.path.isfile(fullname):
+        print(f"Файл с шрифтом '{fullname}' не найден")
+        sys.exit()
+    font = pygame.font.Font(fullname, size)
+    return font
 
 
 def save_game_state(level_function):
@@ -271,15 +445,6 @@ def load_game_state(level_function):
         pass  # Игры нет, ничего не делаем
 
 
-def load_font(size):
-    fullname = os.path.join('data', 'font/PressStart2P-Regular.ttf')
-    if not os.path.isfile(fullname):
-        print(f"Файл с шрифтом '{fullname}' не найден")
-        sys.exit()
-    font = pygame.font.Font(fullname, size)
-    return font
-
-
 def terminate():
     pygame.quit()
     sys.exit()
@@ -287,7 +452,6 @@ def terminate():
 
 def input_window(screen_size):
     global nickname
-    global FPS
     pygame.init()
     screen = pygame.display.set_mode(screen_size)
     manager = pygame_gui.UIManager(screen_size)
@@ -300,7 +464,6 @@ def input_window(screen_size):
     pygame.display.set_caption('Entering name')
     fon = pygame.transform.scale(load_image('backgrounds image/first_screen_background.jpg'), screen_size)
     screen.blit(fon, (0, 0))
-    # screen.fill(pygame.Color("#00008B"))
     # Название игры
     font = load_font(12)
     string_rendered = font.render("Введите имя", True, pygame.Color("White"))
@@ -317,22 +480,26 @@ def input_window(screen_size):
         relative_rect=pygame.Rect(((screen_size[0] // 2) - 110, 120), (210, 30))
     )
     nice_nickname = False
-
     while True:
         time_delta = clock.tick(60) / 1000.0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
 
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
+                level_one()
+
             if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
                 user_name_text = event.text
                 if not (user_name_text.replace('', ' ') == '') and (
                         3 <= len(user_name_text) <= 12) and user_name_text.isalpha():
+                    SOUNDS_CONFIRMING_2.play()
                     nickname, nice_nickname = user_name_text, True
                 else:
                     nickname, nice_nickname = '', False
             elif event.type == pygame_gui.UI_BUTTON_PRESSED and event.ui_element == enter_btn:
                 if nice_nickname and bool(nickname):
+                    SOUNDS_CONFIRMING_1.play()
                     start_screen((600, 400))
             manager.process_events(event)
         manager.update(time_delta)
@@ -347,11 +514,11 @@ def start_screen(screen_size):
     print(nickname)
     pygame.init()
     screen = pygame.display.set_mode(screen_size)
-    # Музыка
-    pygame.mixer.init()
-    pygame.mixer.music.load(load_music('start music background.mp3'))
-    pygame.mixer.music.set_volume(0.15)
-    pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
+    # # Музыка
+    # pygame.mixer.init()
+    # pygame.mixer.music.load(load_music('start music background.mp3'))
+    # pygame.mixer.music.set_volume(0.15)
+    # pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
     pygame.display.set_icon(load_image('icon.jpg'))
     pygame.display.set_caption('AstroBlast')
     fon = pygame.transform.scale(load_image('backgrounds image/first_screen_background.jpg'), screen_size)
@@ -384,115 +551,97 @@ def start_screen(screen_size):
 
 def menu():
     global music_volume
+
     # Размеры окна меню
-    menu_widht, menu_height = 400, 300
+    menu_width, menu_height = 400, 300
+
     # Создание окна меню
-    screen_menu = pygame.display.set_mode((menu_widht, menu_height))
+    screen_menu = pygame.display.set_mode((menu_width, menu_height))
     pygame.display.set_caption("Menu")
-    # Фон меню
-    background = pygame.Surface(screen_menu.get_size())
-    background.fill((0, 0, 0))
+
+    # Инициализация менеджера интерфейсов
+    manager = pygame_gui.UIManager((menu_width, menu_height))
+
+    # Создаем ползунок для регулировки громкости музыки
+    slider_rect = pygame.Rect((50, 150), (300, 30))  # Позиция и размер ползунка
+    music_volume_slider = pygame_gui.elements.UIHorizontalSlider(
+        relative_rect=slider_rect,
+        start_value=music_volume,  # Начальное значение
+        value_range=(0, 100),
+        manager=manager
+    )
+
     # Шрифты
     font = pygame.font.Font(None, 36)
     # Надписи
     music_text = font.render("Music Volume:", True, (255, 255, 255))
 
-    # sound_text = font.render("Sound Volume:", True, (255, 255, 255))
-
-    # Ползунки для регулировки громкости
-    def draw_slider(surf, x, y, w, h, color, value):
-        pygame.draw.rect(surf, color, (x, y, w, h))
-        handle_x = int(x + (w - 10) * value / 100)
-        pygame.draw.rect(surf, (255, 0, 0), (handle_x, y, 10, h))
-
+    # Основной цикл программы
+    clock = pygame.time.Clock()
     running = True
+
     while running:
+        time_delta = clock.tick(60) / 1000.0
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                if event.button == 1:  # Левая кнопка мыши
-                    if 20 <= mouse_pos[0] <= 380 and 120 <= mouse_pos[1] <= 140:
-                        music_volume = int((mouse_pos[0] - 20) / 360 * 100)
-                        pygame.mixer.music.set_volume(music_volume / 100)
-        # Очистка экрана
-        screen_menu.blit(background, (0, 0))
-        # Отображение текста
-        screen_menu.blit(music_text, (20, 80))
-        # Рисование ползунков
-        draw_slider(screen_menu, 20, 120, 360, 20, (255, 255, 255), music_volume)
-        # Обновление дисплея
-        pygame.display.flip()
+
+            if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                if event.ui_element == music_volume_slider:
+                    music_volume = round(event.value)  # Обновляем глобальную переменную
+                    pygame.mixer.music.set_volume(music_volume / 100)  # Устанавливаем уровень громкости
+            manager.process_events(event)
+        manager.update(time_delta)
+        screen_menu.fill((0, 0, 0))  # Заливаем экран черным цветом
+        screen_menu.blit(music_text, (110, 80))
+        manager.draw_ui(screen_menu)  # Отображаем элементы интерфейса
+        pygame.display.update()
     # Возвращаемся к основному окну игры
+    SOUNDS_CONFIRMING_1.play()
     pygame.display.set_caption("AstroBlast")
     pygame.display.set_mode((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
 
 
-def check_bullet_collision(bullets, asteroids):
+def check_collision(ship, asteroids):
+    for asteroid in asteroids:
+        if (ship.rect.x < asteroid.x + asteroid.size and
+                ship.rect.x + ship.rect.width > asteroid.x and
+                ship.rect.y < asteroid.y + asteroid.size and
+                ship.rect.y + ship.rect.height > asteroid.y):
+            return True  # Возвращаем True при столкновении
+    return False
+
+
+def check_bullet_collision(bullets, asteroids, explosions):
+    global SCORED
     for bullet in bullets:
         for asteroid in asteroids:
             if (bullet.rect.x < asteroid.x + asteroid.size and
                     bullet.rect.x + bullet.rect.width > asteroid.x and
                     bullet.rect.y < asteroid.y + asteroid.size and
                     bullet.rect.y + bullet.rect.height > asteroid.y):
-                asteroids.remove(asteroid)  # Удаляем квадрат
+                explosions.append(Explosion(asteroid.rect.centerx, asteroid.rect.centery, 1))
+                asteroids.remove(asteroid)  # Удаляем астероид
+                SCORED += 10
                 bullets.remove(bullet)  # Удаляем пулю
                 return  # Выходим из функции после первого столкновения
 
 
-class Explosion:
-    def __init__(self, x, y):
-        # Загружаем изображение с 8 спрайтами
-        sheet = pygame.image.load("data/image/sprites/boom2.png")
-        frame_width = sheet.get_width() // 8  # Предполагается, что 8 спрайтов в одной строке
-        frame_height = sheet.get_height()
-
-        # Вырезаем спрайты из изображения
-        self.sprites = []
-        for i in range(8):
-            frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
-            self.sprites.append(frame)
-
-        self.current_frame = 0  # Индекс текущего кадра
-        self.frame_duration = 100  # Продолжительность каждого кадра в мс
-        self.last_update = pygame.time.get_ticks()  # Время последнего обновления
-        self.rect = self.sprites[0].get_rect(center=(x, y))  # Позиция взрыва
-        self.active = True  # Флаг активности анимации
-
-    def update(self):
-        if self.active:
-            current_time = pygame.time.get_ticks()
-            # Проверяем, пора ли переходить к следующему кадру
-            if current_time - self.last_update >= self.frame_duration:
-                self.last_update = current_time
-                self.current_frame += 1
-                # Если анимация завершена, деактивируем её
-                if self.current_frame >= len(self.sprites):
-                    self.active = False
-
-    def draw(self, surface):
-        if self.active:
-            surface.blit(self.sprites[self.current_frame], self.rect.topleft)
-
-
-# Внутри функции level_one()
 def level_one():
-    asteroids = []
+    global SCORED, CLOCK, FPS, music_volume, ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets
+    SCORED = 0
+    asteroids, active_bonuses = [], []
     interface = Interface()
-    global CLOCK
-    global FPS
-    pause = False
-    explosions = []  # Список для хранения активных взрывов
-    flash_time = 0
-    flash_active = False
+    pause, explosions = False, []  # Список для хранения активных взрывов
+    flash_time, flash_active = 0, False
     ship_flash_duration = 1000  # Длительность мерцания в мс
     show_hitbox = False  # Флаг для отображения хитбокса
+    bonuses = pygame.sprite.Group()
 
-    # Инициализируем Pygame
+    # Инициализируем Pygame и музыку
     pygame.init()
     pygame.mixer.music.load(load_music('music in lvl 1.mp3'))
-    pygame.mixer.music.set_volume(0.15)
     pygame.mixer.music.play(loops=-1, fade_ms=1 * 1000)
 
     # Создаем окно
@@ -514,6 +663,8 @@ def level_one():
     ship_x = (600 - 64) // 2  # 64 - ширина корабля (предположим, что корабль имеет ширину 64 пикселя)
     ship = Ship(ship_x, 900)  # Начинаем из нижней части экрана
 
+    last_event_time = pygame.time.get_ticks()  # Время первого запуска
+    time_application = pygame.time.get_ticks()
     # Основной игровой цикл
     while True:
         current_time = pygame.time.get_ticks()
@@ -533,7 +684,6 @@ def level_one():
         if not pause:
             background_manager.update_and_draw()  # Обновляем и отрисовываем фон
             keys = pygame.key.get_pressed()
-            ship_speed = 2.2
 
             # Движение корабля
             if keys[pygame.K_a]:  # Влево
@@ -555,14 +705,16 @@ def level_one():
                 if check_collision(ship, [asteroid]) and not asteroid.collision_occurred:
                     asteroid.collision_occurred = True
                     interface.change_health()
+                    SCORED = max(0, SCORED - 50)
+
+                    # Убираем астероид и создаем взрыв
+                    explosion = Explosion(ship.rect.centerx, ship.rect.centery, 2)  # Позиция взрыва - позиция корабля
+                    explosions.append(explosion)  # Добавляем взрыв в список
+                    asteroids.remove(asteroid)  # Удаляем астероид
+
                     if interface.check_health():
                         print("Game Over! Restarting level...")
                         level_one()
-
-                    # Убираем астероид и создаем взрыв
-                    explosion = Explosion(ship.rect.centerx, ship.rect.centery)  # Позиция взрыва - позиция корабля
-                    explosions.append(explosion)  # Добавляем взрыв в список
-                    asteroids.remove(asteroid)  # Удаляем астероид
 
                     # Запускаем мерцание
                     flash_active = True
@@ -577,22 +729,25 @@ def level_one():
                         screen.blit(ship.image, ship.rect.topleft)
                 else:
                     flash_active = False  # Отключаем мерцание
-                    ship.rect.y = 700  # Сброс позиции корабля при необходимости
-                    ship.rect.x = 250  # Сброс позиции корабля при необходимости
+                    # ship.rect.y = 700  # Сброс позиции корабля при необходимости
+                    # ship.rect.x = 250  # Сброс позиции корабля при необходимости
 
             # Обновляем и отображаем взрывы
             for explosion in explosions:
                 explosion.update()
                 explosion.draw(screen)
-
             # Обновляем позицию астероидов
             for asteroid in asteroids:
                 asteroid.move()
-                pygame.draw.rect(screen, (255, 0, 0), (asteroid.x, asteroid.y, asteroid.size, asteroid.size))
+                asteroid.draw(screen)
 
             # Добавляем новые астероиды
-            if pygame.time.get_ticks() % 15 == 0:
+            if current_time % 45 == 0:
                 asteroids.append(Asteroid())
+            if (current_time - last_event_time) >= 20000:  # 20000
+                last_event_time = current_time
+                new_bonus = Bonus((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
+                bonuses.add(new_bonus)
 
             asteroids = [asteroid for asteroid in asteroids if asteroid.y < 900]
 
@@ -603,7 +758,7 @@ def level_one():
                 if bullet.rect.y < -12:
                     ship.bullets.remove(bullet)
 
-            check_bullet_collision(ship.bullets, asteroids)
+            check_bullet_collision(ship.bullets, asteroids, explosions)
 
             ship.update()
             # Отображаем хитбокс, если флаг активен
@@ -619,12 +774,26 @@ def level_one():
                 bullet.update()
                 screen.blit(bullet.image, bullet.rect.topleft)
 
-            frame_image = pygame.image.load('data/image/sprites/hp_window.png')
-            stretched_image = pygame.transform.scale(frame_image,
-                                                     (600 - 390, 80))
-            screen.blit(stretched_image, (390, 0))
+            # Обновляем спрайты бонусов
+            bonuses.update(current_time)
 
+            # Проверка столкновений между кораблем и бонусами
+            collisions = pygame.sprite.spritecollide(ship, bonuses, True)
+            for bonus in collisions:
+                bonus.apply_effect(interface)
+                time_application = current_time
+
+            if (current_time - time_application) / 1000 >= 4:
+                for bonus in bonuses:
+                    bonus.disable_all_effects()
+
+            # Отображаем все спрайты
+            bonuses.draw(screen)
+            frame_image = pygame.image.load('data/image/sprites/hp_window.png')
+            stretched_image = pygame.transform.scale(frame_image, (600 - 390, 80))
+            screen.blit(stretched_image, (390, 0))
             interface.draw_hp_bar(screen)
+            interface.draw_score_bar(screen)
             pygame.display.flip()  # Обновляем дисплей
         CLOCK.tick(FPS)
 
@@ -634,6 +803,6 @@ def level_two():
 
 
 if __name__ == '__main__':
-    music_volume, nickname = 15, ''
+    ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets = 2.2, False, False, False  # Параметры для бонусов
+    music_volume, nickname = 19, ''
     input_window((400, 300))
-    # start_screen((600, 400))
