@@ -16,7 +16,7 @@ SOUNDS_CONFIRMING_1, SOUNDS_CONFIRMING_2 = pygame.mixer.Sound(
 BONUSES = {'Bonus': ['more bullets', 'more hp', 'more speed'],
            'Anti bonus': ['attack of masochism', 'dying moment', 'irritated eye'],
            'Super bonus': ['Art of Asclepius', 'neon bullets']}
-SCORED = 0
+SCORED, MAX_SCORED_IN_LVL1, MAX_SCORED_IN_LVL2 = 0, 0, 0
 SOUNDS_CONFIRMING_1.set_volume(0.12), SOUNDS_CONFIRMING_2.set_volume(0.12)
 
 
@@ -104,7 +104,20 @@ class Ship(pygame.sprite.Sprite):
 
     ########################Одиночный из середины#######################################################################
     def shoot(self, current_time):
-        if is_more_bullets:
+        if is_neon_bullets:
+            if current_time - self.last_shot_time > self.shoot_delay:
+                self.sound_of_shot.play()
+                bullet = Bullet(self.rect.centerx - 45, self.rect.top)
+                self.bullets.append(bullet)
+                bullet = Bullet(self.rect.centerx, self.rect.top)
+                self.bullets.append(bullet)
+                bullet = Bullet(self.rect.centerx - 20, self.rect.top)
+                self.bullets.append(bullet)
+                bullet = Bullet(self.rect.centerx + 25, self.rect.top)
+                self.bullets.append(bullet)
+                self.last_shot_time = current_time
+
+        elif is_more_bullets:
             if current_time - self.last_shot_time > self.shoot_delay:
                 self.sound_of_shot.play()
                 bullet = Bullet(self.rect.centerx - 30, self.rect.top)
@@ -112,6 +125,7 @@ class Ship(pygame.sprite.Sprite):
                 bullet = Bullet(self.rect.centerx, self.rect.top)
                 self.bullets.append(bullet)
                 self.last_shot_time = current_time
+
         else:
             if current_time - self.last_shot_time > self.shoot_delay:
                 self.sound_of_shot.play()
@@ -153,8 +167,8 @@ class Ship(pygame.sprite.Sprite):
 
 
 class Asteroid(AnimatedSprite):
-    def __init__(self):
-        self.image = load_image('sprites/asteroids.png')
+    def __init__(self, level):
+        self.image = load_image('sprites/asteroids_1.png') if level == 1 else load_image('sprites/asteroids_2.png')
         self.size = self.image.get_width()
         # self.size = 30
         self.x = random.randint(0, SCREEN_WIDTH_LEVEL - self.size)
@@ -266,7 +280,7 @@ class BackgroundManager:
 
 
 class Bonus(pygame.sprite.Sprite):
-    def __init__(self, screen_size, bonus_types=('Super bonus',)):
+    def __init__(self, screen_size, bonus_types=('Bonus',)):
         super().__init__()
         self.bonus_type = random.choice(bonus_types)
         self.bonus_name = random.choice(BONUSES[self.bonus_type])
@@ -447,6 +461,8 @@ def load_game_state(level_function):
 
 def terminate():
     pygame.quit()
+    # with open('data/result.txt', 'w') as output_file:
+    #     output_file.write(f"{MAX_SCORED}\n")
     sys.exit()
 
 
@@ -457,7 +473,7 @@ def input_window(screen_size):
     manager = pygame_gui.UIManager(screen_size)
     # Музыка
     pygame.mixer.init()
-    pygame.mixer.music.load(load_music('start music background.mp3'))
+    pygame.mixer.music.load(load_music('music background.mp3'))
     pygame.mixer.music.set_volume(0.15)
     pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
     pygame.display.set_icon(load_image('icon.jpg'))
@@ -488,6 +504,8 @@ def input_window(screen_size):
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
                 level_one()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F2:
+                level_two()
 
             if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
                 user_name_text = event.text
@@ -542,8 +560,10 @@ def start_screen(screen_size):
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if 94 <= event.pos[0] <= 246 and 194 <= event.pos[1] <= 217:  # Окрытие уровня 1
+                    SOUNDS_CONFIRMING_1.play()
                     level_one()
                 elif 342 <= event.pos[0] <= 500 and 194 <= event.pos[1] <= 217:  # Открытие уровня 2
+                    SOUNDS_CONFIRMING_1.play()
                     level_two()
         pygame.display.flip()
         CLOCK.tick(FPS)
@@ -630,6 +650,7 @@ def check_bullet_collision(bullets, asteroids, explosions):
 
 def level_one():
     global SCORED, CLOCK, FPS, music_volume, ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets
+    ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets = 2.2, False, False, False
     SCORED = 0
     asteroids, active_bonuses = [], []
     interface = Interface()
@@ -652,7 +673,7 @@ def level_one():
     # Загружаем фоны
     backgrounds = []
     for i in range(5):
-        filename = f'data/image/backgrounds image/level 1/Space_Stars.png'
+        filename = f'data/image/backgrounds image/Space_Stars.png'
         bg = pygame.transform.scale(pygame.image.load(filename), (SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
         backgrounds.append(bg)
 
@@ -675,7 +696,9 @@ def level_one():
                 pause = not pause
                 if pause:
                     save_game_state(level_one)  # Сохраняем текущее состояние уровня
+                    pygame.mixer.music.pause()
                     menu()  # Переходим в меню
+                    pygame.mixer.music.unpause()
                     pause = False
                     load_game_state(level_one)  # Восстанавливаем состояние уровня после выхода из меню
             if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
@@ -713,8 +736,8 @@ def level_one():
                     asteroids.remove(asteroid)  # Удаляем астероид
 
                     if interface.check_health():
-                        print("Game Over! Restarting level...")
-                        level_one()
+                        pygame.mixer.music.pause()
+                        game_over()
 
                     # Запускаем мерцание
                     flash_active = True
@@ -742,8 +765,8 @@ def level_one():
                 asteroid.draw(screen)
 
             # Добавляем новые астероиды
-            if current_time % 45 == 0:
-                asteroids.append(Asteroid())
+            if current_time % 35 == 0:
+                asteroids.append(Asteroid(1))
             if (current_time - last_event_time) >= 20000:  # 20000
                 last_event_time = current_time
                 new_bonus = Bonus((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
@@ -799,7 +822,231 @@ def level_one():
 
 
 def level_two():
-    print('WIP: level_two')
+    global SCORED, CLOCK, FPS, music_volume, ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets
+    ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets = 2.2, False, False, False
+    SCORED = 0
+    asteroids, active_bonuses = [], []
+    interface = Interface()
+    pause, explosions = False, []  # Список для хранения активных взрывов
+    flash_time, flash_active = 0, False
+    ship_flash_duration = 1000  # Длительность мерцания в мс
+    show_hitbox = False  # Флаг для отображения хитбокса
+    bonuses = pygame.sprite.Group()
+
+    # Инициализируем Pygame и музыку
+    pygame.init()
+    pygame.mixer.music.load('data/music/music in lvl 2.mp3')
+    pygame.mixer.music.play(loops=-1, fade_ms=1 * 1000)
+
+    # Создаем окно
+    os.environ['SDL_VIDEO_WINDOW_POS'] = '%i,%i' % (0, 0)
+    os.environ['SDL_VIDEO_CENTERED'] = '0'
+    screen = pygame.display.set_mode((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
+
+    # Загружаем фоны
+    backgrounds = []
+    for i in range(5):
+        filename = f'data/image/backgrounds image/Space_Stars.png'
+        bg = pygame.transform.scale(pygame.image.load(filename), (SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL))
+        backgrounds.append(bg)
+    # Создаем объект менеджера фонов
+    background_manager = BackgroundManager(screen, backgrounds)
+
+    # Вычисляем начальную позицию по центру экрана
+    ship_x = (600 - 64) // 2  # 64 - ширина корабля (предположим, что корабль имеет ширину 64 пикселя)
+    ship = Ship(ship_x, 900)  # Начинаем из нижней части экрана
+
+    last_event_time = pygame.time.get_ticks()  # Время первого запуска
+    time_application = pygame.time.get_ticks()
+    # Основной игровой цикл
+    while True:
+        current_time = pygame.time.get_ticks()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pause = not pause
+                if pause:
+                    save_game_state(level_one)  # Сохраняем текущее состояние уровня
+                    pygame.mixer.music.pause()
+                    menu()  # Переходим в меню
+                    pygame.mixer.music.unpause()
+                    pause = False
+                    load_game_state(level_one)  # Восстанавливаем состояние уровня после выхода из меню
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
+                show_hitbox = not show_hitbox  # Переключаем отображение хитбокса
+
+        if not pause:
+            background_manager.update_and_draw()  # Обновляем и отрисовываем фон
+            keys = pygame.key.get_pressed()
+
+            # Движение корабля
+            if keys[pygame.K_a]:  # Влево
+                ship.move(-ship_speed, 0)
+                ship.turn('left')  # Устанавливаем флаг поворота
+            elif keys[pygame.K_d]:  # Вправо
+                ship.move(ship_speed, 0)
+                ship.turn('right')
+            else:
+                ship.reset_turn()  # Если не нажаты клавиши A или D, сбрасываем флаг поворота
+
+            if keys[pygame.K_w]:
+                ship.move(0, -ship_speed)
+            if keys[pygame.K_s]:
+                ship.move(0, ship_speed)
+
+            # Проверяем столкновение с астероидами
+            for asteroid in asteroids:
+                if check_collision(ship, [asteroid]) and not asteroid.collision_occurred:
+                    asteroid.collision_occurred = True
+                    interface.change_health()
+                    SCORED = max(0, SCORED - 50)
+
+                    # Убираем астероид и создаем взрыв
+                    explosion = Explosion(ship.rect.centerx, ship.rect.centery, 2)  # Позиция взрыва - позиция корабля
+                    explosions.append(explosion)  # Добавляем взрыв в список
+                    asteroids.remove(asteroid)  # Удаляем астероид
+
+                    if interface.check_health():
+                        pygame.mixer.music.pause()
+                        game_over(2)
+
+                    # Запускаем мерцание
+                    flash_active = True
+                    flash_time = current_time  # Сохраняем текущее время мерцания
+                    break  # Выходим из цикла, чтобы избежать изменения списка во время итерации
+
+            # Обработка мерцания корабля
+            if flash_active:
+                if (current_time - flash_time) < ship_flash_duration:  # мерцание в течение установленной длительности
+                    # Мерцание: показываем корабль через 100 мс
+                    if (current_time // 100) % 2 == 0:
+                        screen.blit(ship.image, ship.rect.topleft)
+                else:
+                    flash_active = False  # Отключаем мерцание
+                    # ship.rect.y = 700  # Сброс позиции корабля при необходимости
+                    # ship.rect.x = 250  # Сброс позиции корабля при необходимости
+
+            # Обновляем и отображаем взрывы
+            for explosion in explosions:
+                explosion.update()
+                explosion.draw(screen)
+            # Обновляем позицию астероидов
+            for asteroid in asteroids:
+                asteroid.move()
+                if not is_irritated_eye:
+                    asteroid.draw(screen)
+
+            # Добавляем новые астероиды
+            if current_time % 25 == 0:
+                asteroids.append(Asteroid(2))
+            if (current_time - last_event_time) >= 5000:  # 20000
+                last_event_time = current_time
+                new_bonus = Bonus((SCREEN_WIDTH_LEVEL, SCREEN_HEIGHT_LEVEL),
+                                  bonus_types=tuple(BONUSES.keys()))
+                bonuses.add(new_bonus)
+
+            asteroids = [asteroid for asteroid in asteroids if asteroid.y < 900]
+
+            if keys[pygame.K_SPACE]:
+                ship.shoot(current_time)
+            for bullet in ship.bullets:
+                bullet.move()
+                if bullet.rect.y < -12:
+                    ship.bullets.remove(bullet)
+
+            check_bullet_collision(ship.bullets, asteroids, explosions)
+
+            ship.update()
+            # Отображаем хитбокс, если флаг активен
+            if show_hitbox:
+                ship.draw_hitbox(screen)
+
+            # Отображаем корабль, если он не мерцает
+            if not flash_active:
+                screen.blit(ship.image, ship.rect.topleft)
+
+            # Отображаем пули
+            for bullet in ship.bullets:
+                bullet.update()
+                screen.blit(bullet.image, bullet.rect.topleft)
+
+            # Обновляем спрайты бонусов
+            bonuses.update(current_time)
+
+            # Проверка столкновений между кораблем и бонусами
+            collisions = pygame.sprite.spritecollide(ship, bonuses, True)
+            for bonus in collisions:
+                bonus.apply_effect(interface)
+                time_application = current_time
+
+            if (current_time - time_application) / 1000 >= 3:
+                for bonus in bonuses:
+                    bonus.disable_all_effects()
+
+            # Отображаем все спрайты
+            bonuses.draw(screen)
+            frame_image = pygame.image.load('data/image/sprites/hp_window.png')
+            stretched_image = pygame.transform.scale(frame_image, (600 - 390, 80))
+            screen.blit(stretched_image, (390, 0))
+            interface.draw_hp_bar(screen)
+            interface.draw_score_bar(screen)
+            pygame.display.flip()  # Обновляем дисплей
+        CLOCK.tick(FPS)
+
+
+def game_over(level=1):
+    global FPS, SCORED, MAX_SCORED_IN_LVL1, MAX_SCORED_IN_LVL2
+    pygame.init()
+    pygame.mixer.init()
+    pygame.mixer.music.load(load_music('music background.mp3'))
+    pygame.mixer.music.set_volume(0.15)
+    pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
+    squish = pygame.mixer.Sound(f'data/sounds/squish.mp3')
+    squish.set_volume(5)
+    screen_size = 550, 350
+    screen = pygame.display.set_mode(screen_size)
+    pygame.display.set_caption('Game over')
+    font = load_font(20)
+    string_rendered = font.render("GAME OVER", True, pygame.Color('White'))
+    intro_rect = string_rendered.get_rect()
+    intro_rect.top, intro_rect.x = 80, 180
+    frame_image = load_image('sprites/hp_window.png')
+    stretched_image = pygame.transform.scale(frame_image, (300, 80))
+    screen.blit(string_rendered, intro_rect), screen.blit(stretched_image, (120, 45))
+    if SCORED >= MAX_SCORED_IN_LVL1 and level == 1:
+        MAX_SCORED_IN_LVL1 = SCORED
+    elif SCORED >= MAX_SCORED_IN_LVL1 and level == 1:
+        MAX_SCORED_IN_LVL2 = SCORED
+    font = load_font(15)
+    for text, y in zip((f"Лучший результат: {MAX_SCORED_IN_LVL1 if level == 1 else MAX_SCORED_IN_LVL2}",
+                        f"Текущий результат: {SCORED}"), (260, 290)):
+        string_rendered = font.render(text, True, pygame.Color('White'))
+        intro_rect = string_rendered.get_rect()
+        intro_rect.top, intro_rect.x = y, 30
+        screen.blit(string_rendered, intro_rect)
+
+    font = load_font(16)
+    for x, text in zip((110, 350), ("Меню", "Рестарт")):
+        string_rendered = font.render(text, False, pygame.Color('White'))
+        intro_rect = string_rendered.get_rect()
+        intro_rect.top, intro_rect.x = 180, x
+        screen.blit(string_rendered, intro_rect)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if 100 <= event.pos[0] <= 177 and 168 <= event.pos[1] <= 204:  # Окрытие меню
+                    SOUNDS_CONFIRMING_1.play()
+                    start_screen((600, 400))
+                elif 343 <= event.pos[0] <= 466 and 170 <= event.pos[1] <= 210:  # Открытие уровня
+                    SOUNDS_CONFIRMING_1.play()
+                    level_one() if level == 1 else level_two()
+                elif 125 <= event.pos[0] <= 409 and 46 <= event.pos[1] <= 120:
+                    squish.play()
+        pygame.display.flip()
+        CLOCK.tick(FPS)
 
 
 if __name__ == '__main__':
