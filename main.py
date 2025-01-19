@@ -3,7 +3,6 @@ import pickle
 import random
 import sys
 import csv
-import math
 
 import pygame
 import pygame_gui
@@ -493,21 +492,29 @@ def input_window(screen_size):
     pygame.init()
     screen = pygame.display.set_mode(screen_size)
     manager = pygame_gui.UIManager(screen_size)
+
     # Музыка
     pygame.mixer.init()
     pygame.mixer.music.load(load_music('music background.mp3'))
     pygame.mixer.music.set_volume(0.15)
     pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
+
+    # Загрузка звука для нажатия клавиши
+    key_press_sound = pygame.mixer.Sound('data/sounds/button-11.wav')
+    key_press_sound.set_volume(0.1)
+
     pygame.display.set_icon(load_image('icon.jpg'))
     pygame.display.set_caption('Entering name')
     fon = pygame.transform.scale(load_image('backgrounds image/first_screen_background.jpg'), screen_size)
     screen.blit(fon, (0, 0))
+
     # Название игры
     font = load_font(12)
     string_rendered = font.render("Введите имя", True, pygame.Color("White"))
     intro_rect = string_rendered.get_rect()
     intro_rect.top, intro_rect.x = 90, (screen_size[0] // 2) - 70
     screen.blit(string_rendered, intro_rect)
+
     clock = pygame.time.Clock()
     enter_btn = pygame_gui.elements.UIButton(
         relative_rect=pygame.Rect(((screen_size[0] // 2) - 50, (screen_size[1] // 2) + 20), (100, 25)),
@@ -517,6 +524,7 @@ def input_window(screen_size):
     user_name = pygame_gui.elements.UITextEntryLine(
         relative_rect=pygame.Rect(((screen_size[0] // 2) - 110, 120), (210, 30))
     )
+
     nice_nickname = False
     while True:
         time_delta = clock.tick(60) / 1000.0
@@ -524,10 +532,14 @@ def input_window(screen_size):
             if event.type == pygame.QUIT:
                 terminate()
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
-                level_one()
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F2:
-                level_two()
+            if event.type == pygame.KEYDOWN:
+                # Воспроизводим звук при нажатии любой клавиши
+                key_press_sound.play()
+
+                if event.key == pygame.K_F1:
+                    level_one()
+                elif event.key == pygame.K_F2:
+                    level_two()
 
             if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
                 user_name_text = event.text
@@ -549,6 +561,7 @@ def input_window(screen_size):
                     SOUNDS_CONFIRMING_1.play()
                     start_screen((600, 400))
             manager.process_events(event)
+
         manager.update(time_delta)
         manager.draw_ui(screen)
         pygame.display.flip()
