@@ -204,14 +204,23 @@ class Bullet(AnimatedSprite):
 class Explosion:
     def __init__(self, x, y, num):
         sheet = load_image(f"sprites/boom{num}.png")
-        frame_width = sheet.get_width() // 8  # Предполагается, что 8 спрайтов в одной строке
-        frame_height = sheet.get_height()
-
-        # Вырезаем спрайты из изображения
-        self.sprites = []
-        for i in range(8):
-            frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
-            self.sprites.append(frame)
+        if num == 3:
+            frame_width = sheet.get_width() // 14
+            frame_height = sheet.get_height()
+            self.sprites = []
+            for i in range(14):
+                frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
+                new_width = int(frame_width * 1)
+                new_height = int(frame_height * 1)
+                scaled_frame = pygame.transform.scale(frame, (new_width, new_height))
+                self.sprites.append(scaled_frame)
+        else:
+            frame_width = sheet.get_width() // 8  # Предполагается, что 8 спрайтов в одной строке
+            frame_height = sheet.get_height()
+            self.sprites = []
+            for i in range(8):
+                frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, frame_height))
+                self.sprites.append(frame)
 
         self.current_frame = 0  # Индекс текущего кадра
         self.frame_duration = 100  # Продолжительность каждого кадра в мс
@@ -683,7 +692,10 @@ def check_bullet_collision(bullets, asteroids, explosions):
                     bullet.rect.x + bullet.rect.width > asteroid.x and
                     bullet.rect.y < asteroid.y + asteroid.size and
                     bullet.rect.y + bullet.rect.height > asteroid.y):
-                explosions.append(Explosion(asteroid.rect.centerx, asteroid.rect.centery, 1))
+                if is_neon_bullets:
+                    explosions.append(Explosion(asteroid.rect.centerx, asteroid.rect.centery, 3))
+                else:
+                    explosions.append(Explosion(asteroid.rect.centerx, asteroid.rect.centery, 1))
                 asteroids.remove(asteroid)  # Удаляем астероид
                 SCORED += 10
                 bullets.remove(bullet)  # Удаляем пулю
@@ -745,6 +757,7 @@ def level_one():
                     load_game_state(level_one)  # Восстанавливаем состояние уровня после выхода из меню
             if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
                 show_hitbox = not show_hitbox  # Переключаем отображение хитбокса
+                is_neon_bullets = True
 
         if not pause:
             background_manager.update_and_draw()  # Обновляем и отрисовываем фон
@@ -786,8 +799,7 @@ def level_one():
                     flash_time = current_time  # Сохраняем текущее время мерцания
                     break  # Выходим из цикла, чтобы избежать изменения списка во время итерации
 
-            # Обработка мерцания корабля
-            if flash_active:
+                # Обработка мерцания корабля            if flash_active:
                 if (current_time - flash_time) < ship_flash_duration:  # мерцание в течение установленной длительности
                     # Мерцание: показываем корабль через 100 мс
                     if (current_time // 100) % 2 == 0:
@@ -865,7 +877,7 @@ def level_one():
 
 def level_two():
     global SCORED, CLOCK, FPS, music_volume, ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets
-    ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets = 2.2, False, False, False
+    ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets = 2.2, False, False, True
     SCORED = 0
     asteroids, active_bonuses = [], []
     interface = Interface()
