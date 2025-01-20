@@ -545,11 +545,6 @@ def input_window(screen_size):
                 # Воспроизводим звук при нажатии любой клавиши
                 key_press_sound.play()
 
-                if event.key == pygame.K_F1:
-                    level_one()
-                elif event.key == pygame.K_F2:
-                    level_two()
-
             if event.type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
                 user_name_text = event.text
                 if not (user_name_text.replace('', ' ') == '') and (
@@ -716,6 +711,7 @@ def level_one():
 
     # Инициализируем Pygame и музыку
     pygame.init()
+    pygame.mixer.music.set_volume(music_volume / 100)
     pygame.mixer.music.load(load_music('music in lvl 1.mp3'))
     pygame.mixer.music.play(loops=-1, fade_ms=1 * 1000)
 
@@ -755,9 +751,6 @@ def level_one():
                     pygame.mixer.music.unpause()
                     pause = False
                     load_game_state(level_one)  # Восстанавливаем состояние уровня после выхода из меню
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
-                show_hitbox = not show_hitbox  # Переключаем отображение хитбокса
-                is_neon_bullets = True
 
         if not pause:
             background_manager.update_and_draw()  # Обновляем и отрисовываем фон
@@ -877,7 +870,7 @@ def level_one():
 
 def level_two():
     global SCORED, CLOCK, FPS, music_volume, ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets
-    ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets = 2.2, False, False, True
+    ship_speed, is_more_bullets, is_irritated_eye, is_neon_bullets = 2.2, False, False, False
     SCORED = 0
     asteroids, active_bonuses = [], []
     interface = Interface()
@@ -890,6 +883,7 @@ def level_two():
     # Инициализируем Pygame и музыку
     pygame.init()
     pygame.mixer.music.load('data/music/music in lvl 2.mp3')
+    pygame.mixer.music.set_volume(music_volume / 100)
     pygame.mixer.music.play(loops=-1, fade_ms=1 * 1000)
 
     # Создаем окно
@@ -927,8 +921,6 @@ def level_two():
                     pygame.mixer.music.unpause()
                     pause = False
                     load_game_state(level_one)  # Восстанавливаем состояние уровня после выхода из меню
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
-                show_hitbox = not show_hitbox  # Переключаем отображение хитбокса
 
         if not pause:
             background_manager.update_and_draw()  # Обновляем и отрисовываем фон
