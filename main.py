@@ -1,8 +1,8 @@
+import csv
 import os
 import pickle
 import random
 import sys
-import csv
 
 import pygame
 import pygame_gui
@@ -509,7 +509,7 @@ def input_window(screen_size):
     key_press_sound = pygame.mixer.Sound('data/sounds/button-11.wav')
     key_press_sound.set_volume(0.1)
 
-    pygame.display.set_icon(load_image('icon.jpg'))
+    pygame.display.set_icon(load_image('icon.ico'))
     pygame.display.set_caption('Entering name')
     fon = pygame.transform.scale(load_image('backgrounds image/first_screen_background.jpg'), screen_size)
     screen.blit(fon, (0, 0))
@@ -579,7 +579,7 @@ def start_screen(screen_size):
     # pygame.mixer.music.load(load_music('start music background.mp3'))
     # pygame.mixer.music.set_volume(0.15)
     # pygame.mixer.music.play(loops=-1, fade_ms=3 * 1000)
-    pygame.display.set_icon(load_image('icon.jpg'))
+    pygame.display.set_icon(load_image('icon.ico'))
     pygame.display.set_caption('AstroBlast')
     fon = pygame.transform.scale(load_image('backgrounds image/first_screen_background.jpg'), screen_size)
     screen.blit(fon, (0, 0))
